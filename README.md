@@ -8,10 +8,13 @@ The site is published at:
 ## 📁 Repository Structure
 ```
 ClaudeXCodex/
-├── index.html          ← Hub landing page
+├── index.html          ← GitHub Pages app shell and landing page
+├── assets/             ← PWA icons and static visual assets
+├── docs/               ← Technical docs and architecture notes
+├── pages/              ← Standalone app/page experiences
 ├── slides/             ← Presentation slide decks (.html)
-├── docs/               ← Documentation pages (.html)
-├── pages/              ← Standalone HTML pages
+├── manifest.webmanifest
+├── service-worker.js
 └── .github/
     └── workflows/
         └── pages.yml   ← Auto-deploy to GitHub Pages on push to main
@@ -20,9 +23,12 @@ ClaudeXCodex/
 | Content type | Where to add the file | Section in `index.html` |
 |---|---|---|
 | Slide deck | `slides/your-deck.html` | Slides |
-| Documentation | `docs/your-doc.html` | Documentation |
+| Documentation | `docs/your-doc.md` or `docs/your-doc.html` | Documentation |
 | Standalone page | `pages/your-page.html` | Pages |
-See [`docs/getting-started.html`](docs/getting-started.html) for a full guide.
+Current examples:
+- `slides/claude-codex-workflow-deck.html`
+- `pages/claude-codex-workflow-tui.html`
+- `docs/claude-codex-technical-architecture.md`
 ## 🖥️ Local Preview
 No build step required — everything is plain HTML.
 ```bash

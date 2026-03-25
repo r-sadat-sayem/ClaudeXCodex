@@ -6,9 +6,9 @@ const APP_ASSETS = [
   "./service-worker.js",
   "./assets/icon.svg",
   "./assets/icon-maskable.svg",
-  "./claude-meets-codex-tui.html",
-  "./claude-meets-codex-slide-deck.html",
-  "./claude-meets-codex-tech-doc.md"
+  "./pages/claude-codex-workflow-tui.html",
+  "./slides/claude-codex-workflow-deck.html",
+  "./docs/claude-codex-technical-architecture.md"
 ];
 
 self.addEventListener("install", (event) => {
