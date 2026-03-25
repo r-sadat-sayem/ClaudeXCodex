@@ -8,6 +8,7 @@ const APP_ASSETS = [
   "./assets/icon-maskable.svg",
   "./pages/claude-codex-workflow-tui.html",
   "./slides/claude-codex-workflow-deck.html",
+  "./docs/architecture-note.html",
   "./docs/claude-codex-technical-architecture.md"
 ];
 

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture Note | Claude x Codex</title>
+  <meta name="description" content="Rendered preview of the Claude x Codex technical architecture note.">
+  <meta name="theme-color" content="#0b0f14">
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121821;
+      --panel-2: #171e28;
+      --line: #26303c;
+      --line-strong: #334050;
+      --text: #e6edf3;
+      --muted: #94a3b8;
+      --accent: #4fb7ff;
+      --accent-2: #f59e0b;
+      --radius: 14px;
+      --shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+      --max: 980px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.7 "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      text-decoration: underline;
+    }
+
+    code,
+    pre {
+      font: inherit;
+    }
+
+    .wrap {
+      width: min(calc(100% - 24px), var(--max));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 15, 20, 0.92);
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar-inner {
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--panel-2);
+      color: var(--text);
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      border-color: var(--accent);
+      text-decoration: none;
+    }
+
+    .main {
+      padding: 28px 0 40px;
+    }
+
+    .hero,
+    .doc-shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 20px 22px;
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-2);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -0.04em;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--muted);
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .doc-shell {
+      padding: 22px;
+      overflow: hidden;
+    }
+
+    .doc {
+      display: grid;
+      gap: 16px;
+    }
+
+    .doc h1,
+    .doc h2,
+    .doc h3,
+    .doc h4 {
+      color: var(--text);
+    }
+
+    .doc h1 {
+      margin-top: 4px;
+      font-size: 30px;
+    }
+
+    .doc h2 {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+      font-size: 22px;
+    }
+
+    .doc h3 {
+      font-size: 18px;
+    }
+
+    .doc h4 {
+      font-size: 16px;
+    }
+
+    .doc p,
+    .doc li {
+      color: var(--muted);
+    }
+
+    .doc ul,
+    .doc ol {
+      margin: 0;
+      padding-left: 22px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .doc hr {
+      border: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .doc pre {
+      margin: 0;
+      padding: 14px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #0d1218;
+      color: var(--text);
+    }
+
+    .doc code.inline {
+      padding: 2px 6px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--panel-2);
+      color: var(--text);
+    }
+
+    .doc table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-2);
+    }
+
+    .doc th,
+    .doc td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .doc th:last-child,
+    .doc td:last-child {
+      border-right: 0;
+    }
+
+    .doc tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .doc th {
+      color: var(--text);
+      background: #141b24;
+    }
+
+    .error {
+      padding: 14px;
+      border: 1px solid #5b2d36;
+      border-radius: 12px;
+      background: #201318;
+      color: #f8b4c0;
+    }
+
+    @media (max-width: 640px) {
+      .topbar-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 0;
+      }
+
+      .doc-shell,
+      .hero {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <strong>Claude x Codex</strong>
+        <span>architecture note preview</span>
+      </div>
+      <a class="button" href="../index.html">Back to hub</a>
+    </div>
+  </header>
+
+  <main class="wrap main">
+    <section class="hero">
+      <div class="eyebrow">
+        <span class="dot" aria-hidden="true"></span>
+        markdown preview
+      </div>
+      <h1>Technical Architecture Note</h1>
+      <p>This page renders the repository Markdown note in a browser-friendly format while keeping the original Markdown file unchanged.</p>
+      <div class="hero-actions">
+        <a class="button" href="./claude-codex-technical-architecture.md">Open raw Markdown</a>
+        <a class="button" href="../pages/claude-codex-workflow-tui.html">Open workflow TUI</a>
+      </div>
+    </section>
+
+    <section class="doc-shell">
+      <article id="doc" class="doc" aria-live="polite"></article>
+    </section>
+  </main>
+
+  <script>
+    const sourcePath = "./claude-codex-technical-architecture.md";
+    const docRoot = document.getElementById("doc");
+
+    function escapeHtml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function renderInline(text) {
+      const escaped = escapeHtml(text);
+      return escaped
+        .replace(/`([^`]+)`/g, '<code class="inline">$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    }
+
+    function renderTable(lines) {
+      if (lines.length < 2) {
+        return "";
+      }
+
+      const rows = lines.map((line) =>
+        line
+          .trim()
+          .replace(/^\|/, "")
+          .replace(/\|$/, "")
+          .split("|")
+          .map((cell) => cell.trim())
+      );
+
+      const header = rows[0];
+      const body = rows.slice(2);
+
+      return `
+        <table>
+          <thead>
+            <tr>${header.map((cell) => `<th>${renderInline(cell)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${body.map((row) => `<tr>${row.map((cell) => `<td>${renderInline(cell)}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderMarkdown(markdown) {
+      const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+      const html = [];
+      let paragraph = [];
+      let listItems = [];
+      let listType = null;
+      let codeFence = false;
+      let codeLines = [];
+      let tableLines = [];
+
+      function flushParagraph() {
+        if (!paragraph.length) {
+          return;
+        }
+        html.push(`<p>${renderInline(paragraph.join(" "))}</p>`);
+        paragraph = [];
+      }
+
+      function flushList() {
+        if (!listItems.length) {
+          return;
+        }
+        html.push(`<${listType}>${listItems.map((item) => `<li>${renderInline(item)}</li>`).join("")}</${listType}>`);
+        listItems = [];
+        listType = null;
+      }
+
+      function flushTable() {
+        if (!tableLines.length) {
+          return;
+        }
+        html.push(renderTable(tableLines));
+        tableLines = [];
+      }
+
+      for (const line of lines) {
+        if (codeFence) {
+          if (line.startsWith("```")) {
+            html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+            codeFence = false;
+            codeLines = [];
+          } else {
+            codeLines.push(line);
+          }
+          continue;
+        }
+
+        if (line.startsWith("```")) {
+          flushParagraph();
+          flushList();
+          flushTable();
+          codeFence = true;
+          continue;
+        }
+
+        if (!line.trim()) {
+          flushParagraph();
+          flushList();
+          flushTable();
+          continue;
+        }
+
+        if (/^\|.*\|$/.test(line.trim())) {
+          flushParagraph();
+          flushList();
+          tableLines.push(line);
+          continue;
+        }
+
+        flushTable();
+
+        const headingMatch = line.match(/^(#{1,4})\s+(.*)$/);
+        if (headingMatch) {
+          flushParagraph();
+          flushList();
+          const level = headingMatch[1].length;
+          html.push(`<h${level}>${renderInline(headingMatch[2])}</h${level}>`);
+          continue;
+        }
+
+        if (/^---+$/.test(line.trim())) {
+          flushParagraph();
+          flushList();
+          html.push("<hr>");
+          continue;
+        }
+
+        const orderedMatch = line.match(/^\d+\.\s+(.*)$/);
+        if (orderedMatch) {
+          flushParagraph();
+          if (listType && listType !== "ol") {
+            flushList();
+          }
+          listType = "ol";
+          listItems.push(orderedMatch[1]);
+          continue;
+        }
+
+        const unorderedMatch = line.match(/^-\s+(.*)$/);
+        if (unorderedMatch) {
+          flushParagraph();
+          if (listType && listType !== "ul") {
+            flushList();
+          }
+          listType = "ul";
+          listItems.push(unorderedMatch[1]);
+          continue;
+        }
+
+        if (listType) {
+          flushList();
+        }
+
+        paragraph.push(line.trim());
+      }
+
+      flushParagraph();
+      flushList();
+      flushTable();
+
+      return html.join("\n");
+    }
+
+    fetch(sourcePath)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Unable to load ${sourcePath}`);
+        }
+        return response.text();
+      })
+      .then((markdown) => {
+        docRoot.innerHTML = renderMarkdown(markdown);
+      })
+      .catch((error) => {
+        docRoot.innerHTML = `
+          <div class="error">
+            <strong>Preview could not be loaded.</strong>
+            <p>${escapeHtml(error.message)}</p>
+            <p><a href="./claude-codex-technical-architecture.md">Open the raw Markdown file instead.</a></p>
+          </div>
+        `;
+      });
+  </script>
+</body>
+</html>
