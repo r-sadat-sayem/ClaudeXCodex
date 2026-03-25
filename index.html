@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Claude x Codex | Agent Workflow PWA</title>
+  <meta name="description" content="A polished single-page GitHub Pages app showing how Claude and Codex can collaborate across planning, review, execution, and progress tracking.">
+  <meta name="theme-color" content="#111827">
+  <meta name="color-scheme" content="dark light">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <style>
+    :root {
+      --bg: #09111f;
+      --bg-soft: #0f172a;
+      --panel: rgba(15, 23, 42, 0.82);
+      --panel-strong: rgba(17, 24, 39, 0.94);
+      --line: rgba(148, 163, 184, 0.18);
+      --line-strong: rgba(148, 163, 184, 0.34);
+      --text: #e5eefc;
+      --muted: #9aa9c4;
+      --claude: #f29a38;
+      --codex: #4fb7ff;
+      --accent: #6ee7b7;
+      --warn: #f5c451;
+      --danger: #fb7185;
+      --shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      --radius: 22px;
+      --max: 1180px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(79, 183, 255, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(242, 154, 56, 0.18), transparent 26%),
+        linear-gradient(180deg, #08101d 0%, #0b1220 45%, #0d1528 100%);
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.6;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    code {
+      font-family: "SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", monospace;
+      font-size: 0.94em;
+    }
+
+    .shell {
+      width: min(var(--max), calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(18px);
+      background: rgba(8, 16, 29, 0.72);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: space-between;
+      min-height: 68px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(242, 154, 56, 0.25), rgba(79, 183, 255, 0.28));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .brand-label strong {
+      display: block;
+      color: #ffffff;
+      font-size: 0.95rem;
+    }
+
+    .brand-label span {
+      color: var(--muted);
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+    }
+
+    .nav {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.92rem;
+    }
+
+    .nav a {
+      text-decoration: none;
+      color: var(--muted);
+    }
+
+    .nav a:hover {
+      color: #ffffff;
+    }
+
+    .hero {
+      padding: 64px 0 34px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .hero-console,
+    .panel,
+    .card,
+    .tab-shell {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-copy {
+      padding: 36px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -90px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(79, 183, 255, 0.2), transparent 65%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .eyebrow-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--claude), var(--codex));
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.1;
+      font-weight: 600;
+    }
+
+    h1 {
+      margin-top: 20px;
+      font-size: clamp(2.7rem, 5vw, 4.8rem);
+      letter-spacing: -0.04em;
+    }
+
+    .hero-copy p {
+      margin: 20px 0 0;
+      max-width: 60ch;
+      color: var(--muted);
+      font-size: 1.04rem;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .stat strong {
+      display: block;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 1.35rem;
+      color: #ffffff;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    .button,
+    button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .button:hover,
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      color: #09111f;
+      background: linear-gradient(135deg, #f8d06d, #6ee7b7);
+      box-shadow: 0 10px 24px rgba(110, 231, 183, 0.24);
+    }
+
+    .button-secondary {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .button-ghost {
+      color: var(--muted);
+      background: transparent;
+      border: 1px dashed rgba(148, 163, 184, 0.3);
+    }
+
+    .hero-console {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 100%;
+    }
+
+    .console-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-family: "SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", monospace;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .window-dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .window-dots span:nth-child(1) { background: #ff6b6b; }
+    .window-dots span:nth-child(2) { background: #ffd166; }
+    .window-dots span:nth-child(3) { background: #4ade80; }
+
+    .terminal {
+      padding: 20px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.88), rgba(15, 23, 42, 0.98));
+      border: 1px solid rgba(79, 183, 255, 0.2);
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .terminal h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
+    }
+
+    .terminal-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .terminal-step {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(148, 163, 184, 0.11);
+    }
+
+    .step-index {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      color: #08101d;
+      background: linear-gradient(135deg, var(--claude), var(--codex));
+    }
+
+    .terminal-step strong {
+      display: block;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      margin-bottom: 4px;
+    }
+
+    .terminal-step span {
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .terminal-step code {
+      display: inline-block;
+      margin-top: 7px;
+      color: #b9dbff;
+    }
+
+    .section {
+      padding: 24px 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .section-header p {
+      margin: 8px 0 0;
+      max-width: 60ch;
+      color: var(--muted);
+    }
+
+    .kicker {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: #c5d4ef;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .card {
+      padding: 24px;
+    }
+
+    .card h3 {
+      font-size: 1.22rem;
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.8rem;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      color: var(--muted);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+    }
+
+    .timeline-card {
+      display: grid;
+      grid-template-columns: 84px minmax(0, 1fr);
+      gap: 18px;
+      padding: 22px;
+      border-radius: 24px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .timeline-index {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      justify-items: start;
+    }
+
+    .timeline-index strong {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 1.15rem;
+    }
+
+    .timeline-index span {
+      color: var(--muted);
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+    }
+
+    .timeline-copy h3 {
+      font-size: 1.34rem;
+      margin-bottom: 8px;
+    }
+
+    .timeline-copy p {
+      margin: 0 0 10px;
+      color: var(--muted);
+    }
+
+    .timeline-copy code {
+      color: #a9d5ff;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .meta span {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      color: #d8e4fb;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.8rem;
+    }
+
+    .tab-shell {
+      padding: 20px;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .tab-button {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .tab-button.active {
+      background: linear-gradient(135deg, rgba(242, 154, 56, 0.2), rgba(79, 183, 255, 0.18));
+      color: #ffffff;
+      border-color: rgba(79, 183, 255, 0.35);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .list-item {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .list-item strong {
+      display: block;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      margin-bottom: 6px;
+    }
+
+    .list-item p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .list-item code {
+      color: #bfe4ff;
+    }
+
+    .risk {
+      border-left: 4px solid transparent;
+    }
+
+    .risk.warn {
+      border-left-color: var(--warn);
+    }
+
+    .risk.danger {
+      border-left-color: var(--danger);
+    }
+
+    .risk.info {
+      border-left-color: var(--codex);
+    }
+
+    .footer {
+      padding: 24px 0 48px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .footer-card {
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-top: 14px;
+      color: #dfeeff;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.9rem;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .grid-3,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .section-header,
+      .footer-card {
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .timeline-card {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline-index {
+        justify-items: start;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .topbar-inner {
+        padding: 10px 0;
+        align-items: start;
+        flex-direction: column;
+      }
+
+      .hero {
+        padding-top: 38px;
+      }
+
+      .hero-copy,
+      .hero-console,
+      .card,
+      .tab-shell,
+      .timeline-card {
+        border-radius: 18px;
+      }
+
+      .hero-copy {
+        padding: 24px;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 2.45rem;
+      }
+
+      .nav {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">CX</div>
+        <div class="brand-label">
+          <strong>Claude x Codex</strong>
+          <span>GitHub Pages single-page PWA</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#overview">Overview</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#console">Console</a>
+        <a href="#risks">Risks</a>
+        <a href="#launch">Launch</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            Presentable from anywhere, installable on any device
+          </div>
+          <h1>One sharable page for the Claude and Codex workflow.</h1>
+          <p>
+            This page turns the original TUI concept into a polished public-facing experience:
+            responsive on mobile, installable as a PWA, and ready to publish through GitHub Pages
+            with a single repository link.
+          </p>
+          <div class="hero-stats">
+            <div class="stat">
+              <strong>7 phases</strong>
+              <span>Plan, critique, gate, execute, and report</span>
+            </div>
+            <div class="stat">
+              <strong>15 hooks</strong>
+              <span>Lifecycle control points for deterministic behavior</span>
+            </div>
+            <div class="stat">
+              <strong>1 app shell</strong>
+              <span>Offline-capable single page with local install support</span>
+            </div>
+          </div>
+          <div class="action-row">
+            <a class="button button-primary" href="#launch">Open the Page Plan</a>
+            <button class="button button-secondary" id="share-button" type="button">Share link</button>
+            <button class="button button-ghost" id="install-button" type="button" hidden>Install app</button>
+          </div>
+          <div class="status" id="share-status" aria-live="polite"></div>
+        </div>
+
+        <aside class="hero-console">
+          <div class="console-top">
+            <div class="window-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>live concept snapshot</span>
+          </div>
+          <div class="terminal">
+            <h2>Agent pipeline in one glance</h2>
+            <div class="terminal-list">
+              <div class="terminal-step">
+                <div class="step-index">1</div>
+                <div>
+                  <strong>Claude plans</strong>
+                  <span>Breaks the task into file map, dependencies, and scoped work clusters.</span>
+                  <code>/plan "add payment module with Stripe webhooks"</code>
+                </div>
+              </div>
+              <div class="terminal-step">
+                <div class="step-index">2</div>
+                <div>
+                  <strong>Codex reviews</strong>
+                  <span>Checks for edge cases, security gaps, and implementation risk before any execution begins.</span>
+                  <code>codex --review --input plan.md --output review.md</code>
+                </div>
+              </div>
+              <div class="terminal-step">
+                <div class="step-index">3</div>
+                <div>
+                  <strong>Human approves</strong>
+                  <span>The gate keeps the workflow accountable. Execution does not start until the plan is explicitly approved.</span>
+                  <code>/approve</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section" id="overview">
+      <div class="shell">
+        <div class="section-header">
+          <div>
+            <span class="kicker">Overview</span>
+            <h2>The original TUI, reframed as a public product page.</h2>
+            <p>
+              The source HTML already contains strong content. This version makes it easier to share:
+              clearer hierarchy, smaller cognitive load, better mobile layout, and direct install or share actions.
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-3">
+          <article class="card">
+            <div class="chip-row">
+              <span class="chip">Claude strength</span>
+            </div>
+            <h3>Long-horizon planning</h3>
+            <p>Claude handles structure well: specifications, dependencies, file mapping, and multi-step execution plans.</p>
+          </article>
+          <article class="card">
+            <div class="chip-row">
+              <span class="chip">Codex strength</span>
+            </div>
+            <h3>Defensive review</h3>
+            <p>Codex brings repo-scale critique, safe execution patterns, and optional delegation for independent tasks.</p>
+          </article>
+          <article class="card">
+            <div class="chip-row">
+              <span class="chip">System outcome</span>
+            </div>
+            <h3>Stronger together</h3>
+            <p>One agent plans optimistically, one agent reviews defensively, and the human remains the gate before execution.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="shell">
+        <div class="section-header">
+          <div>
+            <span class="kicker">Workflow</span>
+            <h2>Seven phases, reduced to the steps that matter.</h2>
+            <p>These cards condense the TUI content into a sequence that reads well on the web while preserving the original mechanics and commands.</p>
+          </div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </section>
+
+    <section class="section" id="console">
+      <div class="shell">
+        <div class="section-header">
+          <div>
+            <span class="kicker">Console View</span>
+            <h2>Keep the technical depth, but reveal it on demand.</h2>
+            <p>The page keeps the operator-focused information from the TUI and exposes it through a cleaner tabbed panel.</p>
+          </div>
+        </div>
+        <div class="tab-shell">
+          <div class="tab-buttons" role="tablist" aria-label="Console tabs">
+            <button class="tab-button active" data-tab="hooks" role="tab" aria-selected="true" type="button">Hooks</button>
+            <button class="tab-button" data-tab="benefits" role="tab" aria-selected="false" type="button">Benefits</button>
+            <button class="tab-button" data-tab="commands" role="tab" aria-selected="false" type="button">Commands</button>
+          </div>
+
+          <div class="tab-panel active" id="tab-hooks" role="tabpanel">
+            <div class="grid grid-2">
+              <article class="list-item">
+                <strong>PostToolUse</strong>
+                <p>After Claude writes the plan, trigger the bridge script to run a Codex review pass.</p>
+                <code>bash .claude/hooks/codex-review.sh</code>
+              </article>
+              <article class="list-item">
+                <strong>Stop gate</strong>
+                <p>Check for <code>plan.approved.md</code>. If it does not exist, the workflow stays blocked until a human approves the plan.</p>
+              </article>
+              <article class="list-item">
+                <strong>SubagentStop</strong>
+                <p>Capture structured output from worker agents so a later <code>/progress-report</code> can aggregate status without polling.</p>
+              </article>
+              <article class="list-item">
+                <strong>SessionStart</strong>
+                <p>Inject project context at the start of every run and keep the workflow repeatable across sessions.</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-benefits" role="tabpanel">
+            <div class="list">
+              <article class="list-item">
+                <strong>Deterministic control beats prompt-only policy.</strong>
+                <p>Hooks always fire; they are better for guardrails, approvals, and audit requirements than loose instruction text.</p>
+              </article>
+              <article class="list-item">
+                <strong>Parallelism without losing structure.</strong>
+                <p>Claude can keep the high-context orchestration while Codex handles independent review or execution branches.</p>
+              </article>
+              <article class="list-item">
+                <strong>Human approval remains first-class.</strong>
+                <p>The workflow is autonomous where it helps, but still explicit where risk, cost, or architecture changes need a decision.</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="tab-commands" role="tabpanel">
+            <div class="grid grid-2">
+              <article class="list-item">
+                <strong>Start planning</strong>
+                <p><code>/plan &lt;task&gt;</code> decomposes the problem and writes the first plan draft.</p>
+              </article>
+              <article class="list-item">
+                <strong>Approve or reject</strong>
+                <p><code>/approve</code> unlocks execution. <code>/reject &lt;reason&gt;</code> feeds the issue back into the refinement loop.</p>
+              </article>
+              <article class="list-item">
+                <strong>Launch execution</strong>
+                <p><code>/go</code> reads the approved plan and spawns scoped workers for each task cluster.</p>
+              </article>
+              <article class="list-item">
+                <strong>Report status</strong>
+                <p><code>/progress-report</code> aggregates agent results into a concise operational snapshot.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="risks">
+      <div class="shell">
+        <div class="section-header">
+          <div>
+            <span class="kicker">Risks</span>
+            <h2>The workflow is useful, but it is not magic.</h2>
+            <p>The original TUI's caution content is worth preserving. Public-facing pages should show the controls and the limits, not just the upside.</p>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <article class="list-item risk danger">
+            <strong>Context loss across agents</strong>
+            <p>Decisions do not carry automatically. Always pass files such as <code>plan.md</code> instead of assuming shared memory.</p>
+          </article>
+          <article class="list-item risk warn">
+            <strong>Token and latency costs</strong>
+            <p>Review loops can become expensive. Add turn limits and exit conditions so critique does not run forever.</p>
+          </article>
+          <article class="list-item risk warn">
+            <strong>External data handling</strong>
+            <p>Code sent to model APIs leaves the machine. Teams should decide where this is acceptable before turning the pipeline on.</p>
+          </article>
+          <article class="list-item risk info">
+            <strong>Scope discipline matters</strong>
+            <p>Worker agents should receive narrow file ownership and minimal privileges so they cannot drift into unrelated changes.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="launch">
+      <div class="shell">
+        <div class="section-header">
+          <div>
+            <span class="kicker">Launch</span>
+            <h2>Publish it, install it, and keep the source material nearby.</h2>
+            <p>The new page is the default entry point. The original TUI remains available as a raw deep-dive for people who want the full terminal-style view.</p>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <article class="card">
+            <h3>What this repository now supports</h3>
+            <div class="list">
+              <div class="list-item">
+                <strong>Sharable default URL</strong>
+                <p>GitHub Pages can serve <code>index.html</code> directly at the repository site URL.</p>
+              </div>
+              <div class="list-item">
+                <strong>PWA install prompt</strong>
+                <p>The app registers a manifest and service worker so supported browsers can install it to desktop or mobile home screens.</p>
+              </div>
+              <div class="list-item">
+                <strong>Offline shell</strong>
+                <p>Key static files are cached so the page still opens even if the network drops after the first visit.</p>
+              </div>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Repository entry points</h3>
+            <div class="action-row">
+              <a class="button button-secondary" href="./claude-meets-codex-tui.html">Open original TUI</a>
+              <a class="button button-secondary" href="./claude-meets-codex-slide-deck.html">Open slide deck</a>
+            </div>
+            <p class="small">
+              The Markdown technical notes remain in <code>claude-meets-codex-tech-doc.md</code>.
+              If you want that rendered as a public HTML page too, it should become a separate static page later.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      <div class="panel footer-card">
+        <div>
+          <strong>Claude x Codex</strong>
+          <div class="small">Responsive GitHub Pages app shell generated from the original TUI concept.</div>
+        </div>
+        <div class="action-row" style="margin-top:0">
+          <button class="button button-secondary" id="footer-share" type="button">Copy sharable link</button>
+          <a class="button button-ghost" href="#overview">Back to top</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const workflowSteps = [
+      {
+        phase: "01",
+        label: "Claude",
+        title: "Planning mode produces the first structured draft.",
+        body: "Claude reads the task and maps the implementation into objectives, file changes, dependencies, and task clusters before code is touched.",
+        command: '/plan "implement OAuth2 with refresh tokens"',
+        meta: ["Planner", "Read-heavy", "High context"]
+      },
+      {
+        phase: "02",
+        label: "Codex",
+        title: "Review mode stress-tests the plan before execution.",
+        body: "Codex critiques the draft for missing edge cases, operational risks, and security concerns. The point is not agreement; it is tension that improves the plan.",
+        command: "codex --review --input plan.md --output review.md",
+        meta: ["Reviewer", "Repo-scale", "Defensive"]
+      },
+      {
+        phase: "03",
+        label: "Bridge",
+        title: "A hook-driven dialogue loop refines the plan.",
+        body: "Hook events pass the review back to Claude, which updates the plan and can repeat the cycle until the output is strong enough for human review.",
+        command: "PostToolUse -> codex-review.sh -> SubagentStop",
+        meta: ["Hooks", "Refinement", "Structured feedback"]
+      },
+      {
+        phase: "04",
+        label: "Human",
+        title: "The gate keeps humans in charge of execution.",
+        body: "Nothing launches until a stakeholder or developer approves the refined plan. That approval becomes the explicit handoff into execution.",
+        command: "/approve",
+        meta: ["Gate", "Decision point", "Accountability"]
+      },
+      {
+        phase: "05",
+        label: "Launch",
+        title: "Execution starts only after approval.",
+        body: "Claude reads the approved plan, groups work into clusters, and assigns ownership to sub-agents with isolated context and bounded scope.",
+        command: "/go",
+        meta: ["Scoped workers", "Parallel ready", "Plan-led"]
+      },
+      {
+        phase: "06",
+        label: "Workers",
+        title: "Optional delegation adds true parallel throughput.",
+        body: "Independent tasks can be sent to Codex or separate sub-agents while the orchestrator remains focused on integration and status tracking.",
+        command: "/delegate &lt;task-id&gt;",
+        meta: ["Parallelism", "Isolation", "Operator controlled"]
+      },
+      {
+        phase: "07",
+        label: "Status",
+        title: "Progress reporting stays event-driven instead of noisy.",
+        body: "Sub-agents write structured state on stop events so the system can summarize progress instantly without polling loops or hand-built dashboards.",
+        command: "/progress-report",
+        meta: ["Event-driven", "Aggregation", "Low overhead"]
+      }
+    ];
+
+    const timeline = document.getElementById("timeline");
+    timeline.innerHTML = workflowSteps.map((step) => `
+      <article class="timeline-card">
+        <div class="timeline-index">
+          <strong>${step.phase}</strong>
+          <span>${step.label}</span>
+        </div>
+        <div class="timeline-copy">
+          <h3>${step.title}</h3>
+          <p>${step.body}</p>
+          <code>${step.command}</code>
+          <div class="meta">
+            ${step.meta.map((item) => `<span>${item}</span>`).join("")}
+          </div>
+        </div>
+      </article>
+    `).join("");
+
+    const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
+    const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const nextTab = button.dataset.tab;
+        tabButtons.forEach((candidate) => {
+          candidate.classList.toggle("active", candidate === button);
+          candidate.setAttribute("aria-selected", String(candidate === button));
+        });
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `tab-${nextTab}`);
+        });
+      });
+    });
+
+    const statusNode = document.getElementById("share-status");
+    const shareTargets = [
+      document.getElementById("share-button"),
+      document.getElementById("footer-share")
+    ];
+
+    async function sharePage() {
+      const shareData = {
+        title: document.title,
+        text: "Claude x Codex workflow PWA",
+        url: window.location.href
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+          statusNode.textContent = "Share sheet opened.";
+          return;
+        }
+
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(window.location.href);
+          statusNode.textContent = "Sharable link copied to clipboard.";
+          return;
+        }
+
+        statusNode.textContent = window.location.href;
+      } catch (error) {
+        statusNode.textContent = "Share was cancelled.";
+      }
+    }
+
+    shareTargets.forEach((button) => {
+      button.addEventListener("click", sharePage);
+    });
+
+    let deferredPrompt = null;
+    const installButton = document.getElementById("install-button");
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+      installButton.hidden = false;
+    });
+
+    installButton.addEventListener("click", async () => {
+      if (!deferredPrompt) {
+        return;
+      }
+
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      installButton.hidden = true;
+    });
+
+    window.addEventListener("appinstalled", () => {
+      statusNode.textContent = "App installed.";
+      installButton.hidden = true;
+    });
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js");
+      });
+    }
+  </script>
+</body>
+</html>
