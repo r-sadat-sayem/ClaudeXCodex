@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Workflow Presentation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: #0f0f13;
+    color: #fff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* SLIDE CONTAINER */
+  #slides { flex: 1; position: relative; overflow: hidden; }
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 60px 32px;
+    opacity: 0;
+    transition: opacity .4s ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+
+  /* SLIDE BG GRADIENTS */
+  .slide-1  { background: radial-gradient(ellipse at 30% 60%, #1a0a2e 0%, #0f0f13 70%); }
+  .slide-2  { background: radial-gradient(ellipse at 70% 30%, #0a1a2e 0%, #0f0f13 70%); }
+  .slide-3  { background: radial-gradient(ellipse at 20% 70%, #1a1a0a 0%, #0f0f13 70%); }
+  .slide-4  { background: radial-gradient(ellipse at 80% 50%, #0a2010 0%, #0f0f13 70%); }
+  .slide-5  { background: radial-gradient(ellipse at 50% 20%, #1a0a1a 0%, #0f0f13 70%); }
+  .slide-6  { background: radial-gradient(ellipse at 30% 80%, #1a1000 0%, #0f0f13 70%); }
+  .slide-7  { background: radial-gradient(ellipse at 60% 40%, #001a1a 0%, #0f0f13 70%); }
+  .slide-8  { background: radial-gradient(ellipse at 40% 60%, #1a0808 0%, #0f0f13 70%); }
+  .slide-9  { background: radial-gradient(ellipse at 50% 50%, #081a10 0%, #0f0f13 70%); }
+
+  /* TYPOGRAPHY */
+  .slide-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 16px;
+  }
+  .slide-title {
+    font-size: 42px;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+  }
+  .slide-subtitle {
+    font-size: 18px;
+    color: #888;
+    text-align: center;
+    font-weight: 400;
+    margin-bottom: 40px;
+    line-height: 1.5;
+    max-width: 640px;
+  }
+  .grad-orange { background: linear-gradient(135deg, #e8924a, #f5c26b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .grad-blue   { background: linear-gradient(135deg, #4a9eff, #8dd4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .grad-green  { background: linear-gradient(135deg, #3ecf6b, #8dffb8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .grad-purple { background: linear-gradient(135deg, #b06fe4, #e0aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .grad-yellow { background: linear-gradient(135deg, #e8c84a, #fff0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+  /* CARDS */
+  .card-row { display: flex; gap: 20px; width: 100%; max-width: 860px; }
+  .card {
+    flex: 1;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  .card .icon { font-size: 36px; margin-bottom: 12px; }
+  .card .c-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .card .c-body { font-size: 13px; color: #888; line-height: 1.6; }
+
+  /* FLOW STEPS */
+  .flow-steps { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 760px; }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .step-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .step-text { flex: 1; }
+  .step-text .st { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .step-text .sd { font-size: 12px; color: #888; line-height: 1.5; }
+  .step-who {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* ANALOGY BOX */
+  .analogy {
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 20px;
+    padding: 32px 40px;
+    max-width: 720px;
+    text-align: center;
+  }
+  .analogy .q { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+  .analogy .a { font-size: 15px; color: #aaa; line-height: 1.7; }
+  .analogy .em { color: #fff; font-weight: 600; }
+
+  /* COMPARISON */
+  .comp-table { width: 100%; max-width: 760px; border-collapse: collapse; }
+  .comp-table th {
+    padding: 12px 16px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .comp-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    vertical-align: top;
+  }
+  .comp-table tr:last-child td { border-bottom: none; }
+  .comp-table .bad  { color: #e05050; }
+  .comp-table .good { color: #3ecf6b; }
+
+  /* BENEFIT PILLS */
+  .benefit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 760px; width: 100%; }
+  .benefit-item {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .benefit-icon { font-size: 24px; flex-shrink: 0; }
+  .benefit-text .bt { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .benefit-text .bd { font-size: 12px; color: #888; line-height: 1.5; }
+
+  /* CAUTION ITEMS */
+  .caution-list { display: flex; flex-direction: column; gap: 10px; max-width: 760px; width: 100%; }
+  .caution-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .caution-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .caution-text .ct { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .caution-text .cd { font-size: 12px; color: #888; line-height: 1.5; }
+
+  /* TITLE SLIDE LOGO ROW */
+  .logo-row { display: flex; align-items: center; gap: 20px; margin-bottom: 32px; }
+  .logo-box {
+    width: 64px; height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 900;
+  }
+  .logo-x { font-size: 28px; color: #444; font-weight: 300; }
+
+  /* BOTTOM NAV */
+  #nav {
+    background: rgba(0,0,0,.5);
+    border-top: 1px solid rgba(255,255,255,.07);
+    display: flex;
+    align-items: center;
+    padding: 10px 24px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.1);
+    color: #ccc;
+    padding: 6px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+  .nav-btn:disabled { opacity: 0.3; cursor: default; }
+  #slide-counter { color: #555; font-size: 13px; flex: 1; text-align: center; }
+  .dot-row { display: flex; gap: 6px; margin-left: auto; }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .dot.active { background: #fff; }
+
+  /* STAT BOXES */
+  .stat-row { display: flex; gap: 20px; margin-bottom: 28px; }
+  .stat-box {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 20px 28px;
+    text-align: center;
+  }
+  .stat-num { font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .stat-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* TIMELINE */
+  .timeline { width: 100%; max-width: 760px; }
+  .tl-item { display: flex; gap: 20px; margin-bottom: 16px; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; width: 80px; flex-shrink: 0; }
+  .tl-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+  .tl-line { width: 1px; flex: 1; background: rgba(255,255,255,.1); margin: 4px 0; }
+  .tl-right { flex: 1; padding-top: 2px; }
+  .tl-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .tl-desc { font-size: 12px; color: #888; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div id="slides">
+
+  <!-- SLIDE 1: TITLE -->
+  <div class="slide slide-1 active" id="slide-1">
+    <div class="logo-row">
+      <div class="logo-box" style="background: linear-gradient(135deg,#3d1f00,#7a3a00)">🧠</div>
+      <div class="logo-x">×</div>
+      <div class="logo-box" style="background: linear-gradient(135deg,#001a3d,#003a7a)">⚡</div>
+    </div>
+    <div class="slide-label">Team Workflow — 2026</div>
+    <h1 class="slide-title">
+      <span class="grad-orange">Claude</span> meets <span class="grad-blue">Codex</span>
+    </h1>
+    <p class="slide-subtitle">
+      How our development team uses two AI assistants working <em>together</em> to plan, review, and build software faster — with you in control at every step.
+    </p>
+    <div style="color:#555;font-size:13px;margin-top:8px">Use ← → arrows or click the buttons below to navigate</div>
+  </div>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <div class="slide slide-2" id="slide-2">
+    <div class="slide-label">The Challenge</div>
+    <h2 class="slide-title" style="font-size:36px">Why one AI assistant<br><span class="grad-blue">isn't enough</span></h2>
+    <table class="comp-table">
+      <thead>
+        <tr>
+          <th>The old way</th>
+          <th>What went wrong</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>One AI plans <em>and</em> reviews its own work</td>
+          <td class="bad">⚠ Like asking someone to proofread their own essay — blind spots everywhere</td>
+        </tr>
+        <tr>
+          <td>Everything happens one task at a time</td>
+          <td class="bad">⚠ Slow. Tasks that could run simultaneously are forced to wait</td>
+        </tr>
+        <tr>
+          <td>No human checkpoint before code runs</td>
+          <td class="bad">⚠ The AI could start executing before anyone reviews the plan</td>
+        </tr>
+        <tr>
+          <td>No visibility into what's happening</td>
+          <td class="bad">⚠ Team has no idea which tasks are done, running, or blocked</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLIDE 3: THE ANALOGY -->
+  <div class="slide slide-3" id="slide-3">
+    <div class="slide-label">The Big Idea</div>
+    <h2 class="slide-title" style="font-size:34px">Think of it like a<br><span class="grad-yellow">design firm</span></h2>
+    <div class="analogy">
+      <div class="q">🏛️ Architect + Structural Engineer</div>
+      <div class="a">
+        <span class="em">Claude is the architect.</span> Creative, big-picture, plans the whole building.<br>
+        <span class="em">Codex is the structural engineer.</span> Reviews the drawings, finds what won't hold up.<br><br>
+        They go back and forth until the plan is solid.<br>
+        Then <span class="em">you approve it</span> — and only then does construction begin.<br><br>
+        If a wing of the building can be built independently, a <span class="em">separate crew</span> starts it in parallel rather than waiting for the main team to finish.
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: THE WORKFLOW -->
+  <div class="slide slide-4" id="slide-4">
+    <div class="slide-label">How It Works</div>
+    <h2 class="slide-title" style="font-size:32px;margin-bottom:24px">The <span class="grad-green">6-step pipeline</span></h2>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(201,127,58,.2);color:#e8924a">1</div>
+        <div class="step-text">
+          <div class="st">Claude plans the task</div>
+          <div class="sd">Reads the codebase and breaks the work into a structured plan document</div>
+        </div>
+        <span class="step-who" style="background:rgba(201,127,58,.15);color:#e8924a">Claude 🧠</span>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(74,158,255,.2);color:#4a9eff">2</div>
+        <div class="step-text">
+          <div class="st">Codex reviews the plan</div>
+          <div class="sd">Looks for gaps, security risks, and missing edge cases — independently</div>
+        </div>
+        <span class="step-who" style="background:rgba(74,158,255,.15);color:#4a9eff">Codex ⚡</span>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(176,111,228,.2);color:#b06fe4">3</div>
+        <div class="step-text">
+          <div class="st">They refine it together</div>
+          <div class="sd">Claude updates the plan, Codex reviews again — up to 3 rounds</div>
+        </div>
+        <span class="step-who" style="background:rgba(176,111,228,.15);color:#b06fe4">Both 🤝</span>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(232,200,74,.2);color:#e8c84a">4</div>
+        <div class="step-text">
+          <div class="st">You approve (or reject)</div>
+          <div class="sd">Nothing runs until a human signs off. Type /approve or /reject with feedback</div>
+        </div>
+        <span class="step-who" style="background:rgba(232,200,74,.15);color:#e8c84a">You ✋</span>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(62,207,107,.2);color:#3ecf6b">5</div>
+        <div class="step-text">
+          <div class="st">Execution begins on /go</div>
+          <div class="sd">Claude spawns specialist sub-teams, each working on their own piece</div>
+        </div>
+        <span class="step-who" style="background:rgba(62,207,107,.15);color:#3ecf6b">Claude 🚀</span>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background:rgba(61,216,218,.2);color:#3dd8da">6</div>
+        <div class="step-text">
+          <div class="st">Track progress live</div>
+          <div class="sd">Type /progress-report to see a live dashboard of all tasks</div>
+        </div>
+        <span class="step-who" style="background:rgba(61,216,218,.15);color:#3dd8da">All 📊</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: CLAUDE vs CODEX roles -->
+  <div class="slide slide-5" id="slide-5">
+    <div class="slide-label">The Two AIs Explained</div>
+    <h2 class="slide-title" style="font-size:34px;margin-bottom:28px">Different strengths,<br><span class="grad-purple">one team</span></h2>
+    <div class="card-row">
+      <div class="card" style="border-color:rgba(201,127,58,.3)">
+        <div class="icon">🧠</div>
+        <div class="c-title" style="color:#e8924a">Claude Code</div>
+        <div class="c-body">
+          Best at <strong style="color:#fff">planning</strong>, understanding the big picture, and coordinating across many files.<br><br>
+          Acts as the <strong style="color:#fff">project lead</strong> — assigns work, tracks the overall vision, and spawns sub-teams.
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(74,158,255,.3)">
+        <div class="icon">⚡</div>
+        <div class="c-title" style="color:#4a9eff">Codex CLI</div>
+        <div class="c-body">
+          Best at <strong style="color:#fff">reviewing</strong> plans defensively and running independent tasks safely in a sandboxed environment.<br><br>
+          Acts as the <strong style="color:#fff">quality engineer</strong> — challenges assumptions, finds what Claude missed.
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(62,207,107,.3)">
+        <div class="icon">👤</div>
+        <div class="c-title" style="color:#3ecf6b">You (the human)</div>
+        <div class="c-body">
+          The <strong style="color:#fff">decision maker</strong>. The pipeline physically cannot proceed to execution without your approval.<br><br>
+          You approve, reject, or redirect — the AIs do the labor.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: BENEFITS -->
+  <div class="slide slide-6" id="slide-6">
+    <div class="slide-label">What You Gain</div>
+    <h2 class="slide-title" style="font-size:34px;margin-bottom:24px">Real benefits for<br><span class="grad-yellow">your team</span></h2>
+    <div class="benefit-grid">
+      <div class="benefit-item">
+        <div class="benefit-icon">🎯</div>
+        <div class="benefit-text">
+          <div class="bt">Better plans, fewer surprises</div>
+          <div class="bd">Two AIs with different perspectives catch issues before a single line of code is written</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">⚡</div>
+        <div class="benefit-text">
+          <div class="bt">Parallel work — faster delivery</div>
+          <div class="bd">Independent tasks run simultaneously. What took 4 days sequentially can finish in 1</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🔒</div>
+        <div class="benefit-text">
+          <div class="bt">You stay in control</div>
+          <div class="bd">A hard gate prevents any execution without human approval — not just a warning, a physical block</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">📊</div>
+        <div class="benefit-text">
+          <div class="bt">Full visibility</div>
+          <div class="bd">/progress-report shows every task status in real time. No more "what is the team working on?"</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">🗂️</div>
+        <div class="benefit-text">
+          <div class="bt">Complete audit trail</div>
+          <div class="bd">Every action is logged. Every task completion creates a checkpoint you can roll back to</div>
+        </div>
+      </div>
+      <div class="benefit-item">
+        <div class="benefit-icon">📈</div>
+        <div class="benefit-text">
+          <div class="bt">Developer focus on hard problems</div>
+          <div class="bd">Boilerplate, repetitive tasks, and documentation handed off to agents. Devs focus on architecture</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: CAUTIONS -->
+  <div class="slide slide-8" id="slide-7">
+    <div class="slide-label">What to Watch Out For</div>
+    <h2 class="slide-title" style="font-size:34px;margin-bottom:24px">Being honest about<br><span class="grad-purple">the limitations</span></h2>
+    <div class="caution-list">
+      <div class="caution-item">
+        <div class="caution-icon">💬</div>
+        <div class="caution-text">
+          <div class="ct">The AIs can disagree with each other</div>
+          <div class="cd">Claude and Codex may suggest different approaches. When they can't resolve it in 3 rounds, a human needs to decide — and that's by design, not a bug.</div>
+        </div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-icon">💰</div>
+        <div class="caution-text">
+          <div class="ct">It costs more than a single AI call</div>
+          <div class="cd">Running two AIs in a review loop uses more API credits. We use smarter model routing (cheaper models for simpler tasks) to keep costs reasonable.</div>
+        </div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-icon">🔑</div>
+        <div class="caution-text">
+          <div class="ct">Your code leaves your machine</div>
+          <div class="cd">Both Claude and Codex send code to Anthropic and OpenAI respectively. Reviewed against both data policies. Not suitable for NDA-protected code without legal sign-off.</div>
+        </div>
+      </div>
+      <div class="caution-item">
+        <div class="caution-icon">🛡️</div>
+        <div class="caution-text">
+          <div class="ct">Security patches are required</div>
+          <div class="cd">A vulnerability in agentic AI workflows was identified in early 2026 and patched. We keep both tools updated and run Codex in a sandboxed environment at all times.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: MARKET CONTEXT -->
+  <div class="slide slide-7" id="slide-8">
+    <div class="slide-label">Why This Matters Now</div>
+    <h2 class="slide-title" style="font-size:34px;margin-bottom:28px">The industry is moving<br><span class="grad-green">fast</span></h2>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num grad-orange">1,445%</div>
+        <div class="stat-label">surge in multi-agent inquiries<br>Q1 2024 → Q2 2025</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num grad-blue">40%</div>
+        <div class="stat-label">of enterprise apps will use<br>task-specific agents by end 2026</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num grad-green">vs 5%</div>
+        <div class="stat-label">that used them<br>in 2025</div>
+      </div>
+    </div>
+    <div class="analogy" style="padding:20px 28px">
+      <div class="a" style="font-size:14px">
+        The industry shift from a <span class="em">single powerful agent</span> to <span class="em">orchestrated teams of specialists</span> mirrors exactly what software engineering did a decade ago — from monolithic apps to microservices. Teams that adopt this now build the muscle memory before it becomes standard practice.
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: SUMMARY / NEXT STEPS -->
+  <div class="slide slide-9" id="slide-9">
+    <div class="slide-label">Summary</div>
+    <h2 class="slide-title" style="font-size:36px;margin-bottom:28px">The three things to<br><span class="grad-green">remember</span></h2>
+    <div class="card-row" style="margin-bottom:28px">
+      <div class="card">
+        <div class="icon">🤝</div>
+        <div class="c-title">Two brains are better than one</div>
+        <div class="c-body">Claude plans optimistically. Codex reviews defensively. Their disagreement produces plans far stronger than either alone.</div>
+      </div>
+      <div class="card">
+        <div class="icon">✋</div>
+        <div class="c-title">You're always in control</div>
+        <div class="c-body">The pipeline has a hard stop before execution. No code runs without a human approving the plan. This is enforced at the system level.</div>
+      </div>
+      <div class="card">
+        <div class="icon">📊</div>
+        <div class="c-title">Full transparency, always</div>
+        <div class="c-body">Every action is logged. Every task is tracked. /progress-report gives a live view of the entire pipeline at any moment.</div>
+      </div>
+    </div>
+    <div style="color:#555;font-size:13px;text-align:center">
+      Questions? Ask the team · Full technical documentation available on request
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nav-btn" id="prev-btn" onclick="prevSlide()" disabled>← Prev</button>
+  <span id="slide-counter">1 / 9</span>
+  <button class="nav-btn" id="next-btn" onclick="nextSlide()">Next →</button>
+  <div class="dot-row" id="dots"></div>
+</div>
+
+<script>
+let cur = 0;
+const total = 9;
+
+const dots = document.getElementById('dots');
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dots.appendChild(d);
+}
+
+function goTo(n) {
+  document.getElementById('slide-' + (cur + 1)).classList.remove('active');
+  dots.children[cur].classList.remove('active');
+  cur = Math.max(0, Math.min(total - 1, n));
+  const el = document.getElementById('slide-' + (cur + 1));
+  el.classList.add('active');
+  dots.children[cur].classList.add('active');
+  document.getElementById('slide-counter').textContent = (cur + 1) + ' / ' + total;
+  document.getElementById('prev-btn').disabled = cur === 0;
+  document.getElementById('next-btn').disabled = cur === total - 1;
+}
+
+function nextSlide() { goTo(cur + 1); }
+function prevSlide() { goTo(cur - 1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   prevSlide();
+});
+</script>
+</body>
+</html>
