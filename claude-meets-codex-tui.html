@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude × Codex Workflow TUI</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --bg2: #111;
+    --bg3: #161616;
+    --border: #2a2a2a;
+    --border-hl: #444;
+    --claude: #c97f3a;
+    --codex: #4a9eff;
+    --green: #3ecf6b;
+    --yellow: #e8c84a;
+    --red: #e05050;
+    --muted: #555;
+    --text: #ccc;
+    --text-dim: #777;
+    --text-bright: #eee;
+    --magenta: #b06fe4;
+    --cyan: #3dd8da;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', 'Menlo', 'Monaco', monospace;
+    font-size: 13px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── TOP BAR ─── */
+  #topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .tb-title { color: var(--text-bright); font-weight: bold; letter-spacing: 1px; font-size: 12px; }
+  .tb-sep { color: var(--muted); }
+  .tb-tab {
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 2px;
+    font-size: 11px;
+    transition: color .15s;
+  }
+  .tb-tab:hover { color: var(--text); }
+  .tb-tab.active { color: var(--text-bright); background: var(--bg3); border: 1px solid var(--border-hl); }
+  .tb-right { margin-left: auto; color: var(--text-dim); font-size: 11px; display: flex; gap: 12px; }
+  .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; background: var(--green); }
+  .status-dot.warn { background: var(--yellow); }
+
+  /* ─── MAIN LAYOUT ─── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ─── LEFT PANEL ─── */
+  #left {
+    width: 200px;
+    min-width: 180px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .panel-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 5px 10px;
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    padding: 7px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border-left: 2px solid transparent;
+    transition: all .1s;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--text-bright); border-left-color: var(--claude); background: rgba(201,127,58,.08); }
+  .nav-icon { font-size: 13px; width: 16px; text-align: center; }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: #fff;
+    border-radius: 3px;
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+  #left .spacer { flex: 1; }
+  .keybind-hint {
+    padding: 8px 10px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+  }
+  .kb { color: var(--text-dim); }
+
+  /* ─── CENTER ─── */
+  #center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── RIGHT PANEL ─── */
+  #right {
+    width: 240px;
+    min-width: 220px;
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ─── CONTENT PANE ─── */
+  .content-pane {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .content-pane.active {
+    display: flex;
+  }
+  .content-pane::-webkit-scrollbar { width: 4px; }
+  .content-pane::-webkit-scrollbar-track { background: transparent; }
+  .content-pane::-webkit-scrollbar-thumb { background: var(--border-hl); border-radius: 2px; }
+
+  /* ─── SECTION HEADING ─── */
+  .section-title {
+    color: var(--text-bright);
+    font-size: 13px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .pill {
+    font-size: 10px;
+    font-weight: normal;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border-hl);
+    color: var(--text-dim);
+  }
+
+  /* ─── FLOW DIAGRAM ─── */
+  .flow-container { display: flex; flex-direction: column; gap: 0; }
+  .flow-node {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+  }
+  .flow-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 32px;
+    flex-shrink: 0;
+  }
+  .flow-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border: 1px solid;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .flow-circle:hover { transform: scale(1.08); }
+  .flow-vert {
+    width: 1px;
+    flex: 1;
+    min-height: 20px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+  .flow-content {
+    flex: 1;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .flow-content:hover { border-color: var(--border-hl); }
+  .flow-content.highlight { border-color: var(--claude); }
+  .flow-content.highlight-codex { border-color: var(--codex); }
+  .flow-content.highlight-green { border-color: var(--green); }
+  .flow-node-title { font-size: 12px; font-weight: bold; color: var(--text-bright); margin-bottom: 3px; }
+  .flow-node-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .flow-node-cmd { font-size: 10px; color: var(--cyan); margin-top: 4px; }
+  .node-claude { color: var(--claude); border-color: var(--claude); background: rgba(201,127,58,.08); }
+  .node-codex { color: var(--codex); border-color: var(--codex); background: rgba(74,158,255,.08); }
+  .node-go { color: var(--green); border-color: var(--green); background: rgba(62,207,107,.08); }
+  .node-sub { color: var(--magenta); border-color: var(--magenta); background: rgba(176,111,228,.08); }
+  .node-gate { color: var(--yellow); border-color: var(--yellow); background: rgba(232,200,74,.08); }
+
+  /* ─── CODE BLOCKS ─── */
+  pre {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+    font-size: 11px;
+    overflow-x: auto;
+    line-height: 1.6;
+    white-space: pre;
+  }
+  pre::-webkit-scrollbar { height: 3px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border-hl); }
+  .kw { color: var(--claude); }
+  .str { color: var(--green); }
+  .cm { color: var(--muted); font-style: italic; }
+  .num { color: var(--codex); }
+  .fn { color: var(--cyan); }
+
+  /* ─── INFO CARDS ─── */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+  }
+  .card-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 4px; }
+  .card-value { font-size: 12px; color: var(--text-bright); line-height: 1.5; }
+
+  /* ─── BENEFITS / CAUTIONS ─── */
+  .item-list { display: flex; flex-direction: column; gap: 6px; }
+  .item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg3);
+    border-radius: 3px;
+    border-left: 2px solid transparent;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .item-row.good { border-left-color: var(--green); }
+  .item-row.warn { border-left-color: var(--yellow); }
+  .item-row.bad  { border-left-color: var(--red); }
+  .item-row.info { border-left-color: var(--codex); }
+  .item-icon { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+  .item-text { color: var(--text); }
+  .item-text b { color: var(--text-bright); }
+  .item-text small { color: var(--text-dim); display: block; font-size: 10px; }
+
+  /* ─── PROGRESS TRACKER ─── */
+  .progress-bar-container {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    margin-bottom: 4px;
+  }
+  .progress-label { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-track {
+    height: 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--claude), var(--codex));
+    border-radius: 4px;
+    transition: width .4s ease;
+  }
+  .stage-list { display: flex; flex-direction: column; gap: 4px; }
+  .stage-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background .1s;
+    font-size: 12px;
+  }
+  .stage-item:hover { background: var(--bg3); }
+  .stage-check {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border-hl);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .stage-check.done { background: var(--green); border-color: var(--green); color: #000; }
+  .stage-check.inprog { background: var(--yellow); border-color: var(--yellow); color: #000; }
+  .stage-text { color: var(--text); flex: 1; }
+  .stage-text.done-text { text-decoration: line-through; color: var(--text-dim); }
+  .stage-owner { font-size: 10px; color: var(--text-dim); }
+
+  /* ─── COMMAND REFERENCE ─── */
+  .cmd-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .cmd-table td { padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .cmd-table tr:last-child td { border-bottom: none; }
+  .cmd-table .cmd-key { color: var(--cyan); white-space: nowrap; width: 1px; }
+  .cmd-table .cmd-desc { color: var(--text-dim); }
+
+  /* ─── RIGHT SIDE PANELS ─── */
+  .side-section { border-bottom: 1px solid var(--border); }
+  .side-section-title {
+    padding: 5px 10px;
+    background: var(--bg3);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+  .side-content { padding: 8px 10px; font-size: 11px; line-height: 1.7; }
+  .agent-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+  }
+  .agent-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .agent-name { color: var(--text); flex: 1; }
+  .agent-status { font-size: 10px; color: var(--text-dim); }
+
+  /* ─── BOTTOM BAR ─── */
+  #bottombar {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    padding: 3px 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .bb-key { color: var(--text); }
+  .bb-desc { color: var(--muted); }
+  .bb-right { margin-left: auto; color: var(--text-dim); }
+
+  /* ─── DETAIL MODAL ─── */
+  #detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #detail-overlay.open { display: flex; }
+  #detail-box {
+    background: var(--bg2);
+    border: 1px solid var(--border-hl);
+    border-radius: 6px;
+    width: 560px;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 20px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  #detail-box::-webkit-scrollbar { width: 4px; }
+  #detail-box::-webkit-scrollbar-thumb { background: var(--border-hl); }
+  .detail-title { font-size: 14px; font-weight: bold; color: var(--text-bright); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .detail-body { color: var(--text); }
+  .detail-close { float: right; cursor: pointer; color: var(--text-dim); font-size: 16px; line-height: 1; }
+  .detail-close:hover { color: var(--text-bright); }
+  .detail-pre { background: var(--bg); border: 1px solid var(--border); border-radius: 3px; padding: 10px; margin: 10px 0; font-family: monospace; font-size: 11px; white-space: pre; overflow-x: auto; }
+  .detail-note { background: rgba(232,200,74,.07); border: 1px solid rgba(232,200,74,.3); border-radius: 3px; padding: 8px; margin: 8px 0; font-size: 11px; color: var(--yellow); }
+
+  /* ─── SCROLLBAR GLOBAL ─── */
+  * { scrollbar-width: thin; scrollbar-color: var(--border-hl) transparent; }
+
+  .tag { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-right: 3px; }
+  .tag-claude { background: rgba(201,127,58,.2); color: var(--claude); border: 1px solid rgba(201,127,58,.4); }
+  .tag-codex { background: rgba(74,158,255,.2); color: var(--codex); border: 1px solid rgba(74,158,255,.4); }
+  .tag-both { background: rgba(62,207,107,.15); color: var(--green); border: 1px solid rgba(62,207,107,.3); }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <span class="tb-title">⬡ CLAUDE × CODEX</span>
+  <span class="tb-sep">│</span>
+  <span class="tb-tab active" onclick="switchTab('workflow', this)">Workflow</span>
+  <span class="tb-tab" onclick="switchTab('hooks', this)">Hooks</span>
+  <span class="tb-tab" onclick="switchTab('benefits', this)">Benefits</span>
+  <span class="tb-tab" onclick="switchTab('cautions', this)">Cautions</span>
+  <span class="tb-tab" onclick="switchTab('progress', this)">Progress</span>
+  <span class="tb-tab" onclick="switchTab('cmds', this)">Commands</span>
+  <div class="tb-right">
+    <span><span class="status-dot"></span>claude-sonnet-4-6</span>
+    <span><span class="status-dot warn"></span>codex-cli@latest</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT NAV -->
+  <div id="left">
+    <div class="panel-header">Navigation</div>
+    <div class="nav-item active" onclick="switchNav('workflow', this)">
+      <span class="nav-icon">⟳</span> Workflow
+    </div>
+    <div class="nav-item" onclick="switchNav('hooks', this)">
+      <span class="nav-icon">⚙</span> Hooks Config
+    </div>
+    <div class="nav-item" onclick="switchNav('benefits', this)">
+      <span class="nav-icon">✦</span> Benefits
+    </div>
+    <div class="nav-item" onclick="switchNav('cautions', this)">
+      <span class="nav-icon">⚠</span> Cautions
+      <span class="nav-badge">6</span>
+    </div>
+    <div class="nav-item" onclick="switchNav('progress', this)">
+      <span class="nav-icon">▣</span> Progress
+    </div>
+    <div class="nav-item" onclick="switchNav('cmds', this)">
+      <span class="nav-icon">$</span> Commands
+    </div>
+    <div class="spacer"></div>
+    <div class="keybind-hint">
+      <div><span class="kb">[Tab]</span> cycle panels</div>
+      <div><span class="kb">[Enter]</span> expand node</div>
+      <div><span class="kb">[/]</span> search</div>
+      <div><span class="kb">[q]</span> quit</div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div id="center">
+
+    <!-- WORKFLOW PANE -->
+    <div id="pane-workflow" class="content-pane active">
+      <div class="section-title">
+        Pipeline Overview
+        <span class="pill">Plan → Review → Refine → Execute</span>
+      </div>
+      <div class="flow-container">
+
+        <!-- PHASE 1: PLAN -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-claude" onclick="showDetail('plan')" title="Click for details">C</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content highlight" onclick="showDetail('plan')">
+            <div class="flow-node-title">① Claude Code — Plan <span class="tag tag-claude">claude</span></div>
+            <div class="flow-node-desc">Receives task. Enters plan mode. Decomposes into specs, milestones, file structure, dependencies. Produces structured plan doc.</div>
+            <div class="flow-node-cmd">$ claude --plan "implement OAuth2 with refresh tokens"</div>
+          </div>
+        </div>
+
+        <!-- PHASE 2: REVIEW -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-codex" onclick="showDetail('review')" title="Click for details">X</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content highlight-codex" onclick="showDetail('review')">
+            <div class="flow-node-title">② Codex — Review <span class="tag tag-codex">codex</span></div>
+            <div class="flow-node-desc">Reads Claude's plan. Reviews for gaps, implementation risk, security issues, missing edge cases. Returns structured critique.</div>
+            <div class="flow-node-cmd">$ codex --review --input plan.md --output review.md</div>
+          </div>
+        </div>
+
+        <!-- PHASE 3: DIALOGUE -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle" style="color:var(--magenta);border-color:var(--magenta);background:rgba(176,111,228,.08)" onclick="showDetail('dialogue')">↔</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content" style="border-color:var(--magenta)" onclick="showDetail('dialogue')">
+            <div class="flow-node-title">③ Iterative Dialogue <span class="tag tag-both">both</span></div>
+            <div class="flow-node-desc">Claude & Codex exchange structured JSON messages via hook bridge. PostToolUse hook triggers Codex critique; SubagentStop hook returns refined plan to Claude.</div>
+            <div class="flow-node-cmd">hook: PostToolUse → codex-bridge.sh → SubagentStop</div>
+          </div>
+        </div>
+
+        <!-- PHASE 4: GATE -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-gate" onclick="showDetail('gate')">⊡</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content" style="border-color:var(--yellow)" onclick="showDetail('gate')">
+            <div class="flow-node-title">④ Stakeholder Gate <span class="tag" style="background:rgba(232,200,74,.15);color:var(--yellow);border:1px solid rgba(232,200,74,.3)">human</span></div>
+            <div class="flow-node-desc">Plan surfaced to dev / stakeholder for approval. Interactive diff view. Annotate, reject, or approve. Locked plan saved to plan.approved.md.</div>
+            <div class="flow-node-cmd">→ Awaiting: /approve  /reject  /edit</div>
+          </div>
+        </div>
+
+        <!-- PHASE 5: GO -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-go" onclick="showDetail('go')">▶</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content highlight-green" onclick="showDetail('go')">
+            <div class="flow-node-title">⑤ /go — Launch <span class="tag tag-both">execute</span></div>
+            <div class="flow-node-desc">Claude reads approved plan and spawns sub-agents per task cluster. Each sub-agent gets isolated context, tools, and scope.</div>
+            <div class="flow-node-cmd">$ /go  →  spawning 3 sub-agents...</div>
+          </div>
+        </div>
+
+        <!-- PHASE 6: PARALLEL -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-sub" onclick="showDetail('parallel')">⫶</div>
+            <div class="flow-vert"></div>
+          </div>
+          <div class="flow-content" style="border-color:var(--magenta)" onclick="showDetail('parallel')">
+            <div class="flow-node-title">⑥ Sub-agents + Codex Delegation <span class="tag tag-codex">optional</span></div>
+            <div class="flow-node-desc">Claude sub-agents handle task clusters. Independent tasks can be delegated to Codex CLI for true parallelism. User approves delegation.</div>
+            <div class="flow-node-cmd">[?] Delegate task-3 to Codex? [y/N]</div>
+          </div>
+        </div>
+
+        <!-- PHASE 7: PROGRESS -->
+        <div class="flow-node">
+          <div class="flow-line">
+            <div class="flow-circle node-go" onclick="showDetail('progress-report')" style="color:var(--cyan);border-color:var(--cyan);background:rgba(61,216,218,.08)">≡</div>
+            <div class="flow-vert" style="background:transparent"></div>
+          </div>
+          <div class="flow-content" style="border-color:var(--cyan)" onclick="showDetail('progress-report')">
+            <div class="flow-node-title">⑦ /progress-report <span class="tag" style="background:rgba(61,216,218,.12);color:var(--cyan);border:1px solid rgba(61,216,218,.3)">opt-in</span></div>
+            <div class="flow-node-desc">Slash command queries all active sub-agents via SubagentStop hooks. Aggregates completion, blockers, estimated time. Renders TUI progress bar.</div>
+            <div class="flow-node-cmd">$ /progress-report  →  ████████░░ 78% [3/4 tasks]</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- HOOKS PANE -->
+    <div id="pane-hooks" class="content-pane">
+      <div class="section-title">Hook Configuration <span class="pill">.claude/settings.json</span></div>
+<pre><span class="cm">// .claude/settings.json — team project hooks</span>
+{
+  <span class="str">"hooks"</span>: {
+
+    <span class="cm">// Fire when Claude finishes generating a plan</span>
+    <span class="str">"PostToolUse"</span>: [{
+      <span class="str">"matcher"</span>: <span class="str">"Write"</span>,
+      <span class="str">"hooks"</span>: [{
+        <span class="str">"type"</span>: <span class="str">"command"</span>,
+        <span class="str">"command"</span>: <span class="str">"bash .claude/hooks/codex-review.sh"</span>
+      }]
+    }],
+
+    <span class="cm">// Codex review complete → inject back into Claude</span>
+    <span class="str">"SubagentStop"</span>: [{
+      <span class="str">"hooks"</span>: [{
+        <span class="str">"type"</span>: <span class="str">"agent"</span>,
+        <span class="str">"prompt"</span>: <span class="str">"Read codex-review.md and refine plan.md. Output plan.refined.md"</span>,
+        <span class="str">"timeout"</span>: <span class="num">120</span>
+      }]
+    }],
+
+    <span class="cm">// Block execution until plan is approved</span>
+    <span class="str">"Stop"</span>: [{
+      <span class="str">"hooks"</span>: [{
+        <span class="str">"type"</span>: <span class="str">"agent"</span>,
+        <span class="str">"prompt"</span>: <span class="str">"Check if plan.approved.md exists. If not, return ok=false with reason='Awaiting stakeholder approval'."</span>,
+        <span class="str">"timeout"</span>: <span class="num">60</span>
+      }]
+    }],
+
+    <span class="cm">// Log all tool use for audit trail</span>
+    <span class="str">"PreToolUse"</span>: [{
+      <span class="str">"hooks"</span>: [{
+        <span class="str">"type"</span>: <span class="str">"http"</span>,
+        <span class="str">"url"</span>: <span class="str">"http://localhost:9000/audit"</span>
+      }]
+    }],
+
+    <span class="cm">// Inject session context at start</span>
+    <span class="str">"SessionStart"</span>: [{
+      <span class="str">"hooks"</span>: [{
+        <span class="str">"type"</span>: <span class="str">"command"</span>,
+        <span class="str">"command"</span>: <span class="str">"cat .claude/context/team-context.md"</span>
+      }]
+    }]
+  }
+}</pre>
+
+      <div class="section-title">Codex Bridge Script <span class="pill">.claude/hooks/codex-review.sh</span></div>
+<pre><span class="cm">#!/bin/bash</span>
+<span class="cm"># Reads Claude's written plan, passes to Codex for review</span>
+INPUT=<span class="fn">$(</span>cat /dev/stdin<span class="fn">)</span>
+PLAN_FILE=<span class="fn">$(</span>echo "$INPUT" | jq -r <span class="str">'.tool_input.file_path'</span><span class="fn">)</span>
+
+<span class="kw">if</span> [[ "$PLAN_FILE" == *"plan.md"* ]]; then
+  codex <span class="str">"Review this plan for gaps, risks, missing edge cases. Be concise."</span> \
+    --input "$PLAN_FILE" \
+    --output .claude/tmp/codex-review.md \
+    --approval-mode auto-edit
+  echo <span class="str">'{"continue": true, "reason": "Codex review complete"}'</span>
+<span class="kw">else</span>
+  echo <span class="str">'{"continue": true}'</span>
+<span class="kw">fi</span></pre>
+
+      <div class="section-title">15 Available Hook Events <span class="pill">Claude Code</span></div>
+      <table class="cmd-table" style="width:100%">
+        <tr><td class="cmd-key">SessionStart</td><td class="cmd-desc">Inject team context into every session</td></tr>
+        <tr><td class="cmd-key">SessionEnd</td><td class="cmd-desc">Commit checkpoint, notify team</td></tr>
+        <tr><td class="cmd-key">PreToolUse</td><td class="cmd-desc">Block dangerous commands, audit log</td></tr>
+        <tr><td class="cmd-key">PostToolUse</td><td class="cmd-desc">Trigger Codex review after file write</td></tr>
+        <tr><td class="cmd-key">Stop</td><td class="cmd-desc">Block until approval gate is met</td></tr>
+        <tr><td class="cmd-key">SubagentStop</td><td class="cmd-desc">Aggregate sub-agent results for /progress-report</td></tr>
+        <tr><td class="cmd-key">SubagentStart</td><td class="cmd-desc">Log sub-agent spawn for tracking</td></tr>
+        <tr><td class="cmd-key">UserPromptSubmit</td><td class="cmd-desc">Detect /go, /progress-report slash commands</td></tr>
+        <tr><td class="cmd-key">TaskCompleted</td><td class="cmd-desc">Update progress tracker, ping stakeholder</td></tr>
+        <tr><td class="cmd-key">Notification</td><td class="cmd-desc">Desktop / Slack alerts on important events</td></tr>
+      </table>
+    </div>
+
+    <!-- BENEFITS PANE -->
+    <div id="pane-benefits" class="content-pane">
+      <div class="section-title">Why This Pipeline Works</div>
+      <div class="card-grid">
+        <div class="card"><div class="card-label">Claude Strength</div><div class="card-value">Long-horizon planning, deep codebase reasoning, multi-file coordination</div></div>
+        <div class="card"><div class="card-label">Codex Strength</div><div class="card-value">Repo-scale review, sandboxed execution, parallel async task delegation</div></div>
+        <div class="card"><div class="card-label">Hook System</div><div class="card-value">15 lifecycle events, deterministic control, not just "suggestions"</div></div>
+        <div class="card"><div class="card-label">Sub-agents</div><div class="card-value">Isolated contexts, parallel execution, scope-limited tool access</div></div>
+      </div>
+
+      <div class="section-title">Claude Code Benefits <span class="pill">planner</span></div>
+      <div class="item-list">
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Best-in-class planning</b> — Decomposes complex tasks into specs with dependencies, milestones, and file-level detail.<small>Excels at multi-file coordinated changes and reasoning about entire codebases</small></span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Hooks are deterministic</b> — Unlike prompt rules in CLAUDE.md, hooks <em>always</em> fire. Plan gates are enforced, not suggested.<small>PreToolUse / Stop hooks cannot be bypassed by the model</small></span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Sub-agent orchestration</b> — Native support for spawning isolated sub-agents with their own context windows and tool scopes.</span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Terminal-native</b> — Lives in your workflow. No context switching. Deep file system and git integration.</span></div>
+        <div class="item-row info"><span class="item-icon">▸</span><span class="item-text"><b>SessionStart stdout = context</b> — Your hook's stdout becomes Claude's starting context. Team-wide context injection built-in.</span></div>
+      </div>
+
+      <div class="section-title">Codex Benefits <span class="pill">reviewer + parallel worker</span></div>
+      <div class="item-list">
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Sandboxed execution</b> — macOS Seatbelt / Linux Landlock OS-level isolation. Safe to run autonomously.<small>Network blocked by default; explicit opt-in required</small></span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Async cloud tasks</b> — Delegate long-running tasks to cloud sandboxes. Your terminal stays responsive.</span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>AGENTS.md + MCP</b> — Codex is configurable via AGENTS.md and extensible via MCP servers, same protocol as Claude.</span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Runs as MCP server</b> — Codex CLI can act as an MCP server, letting Claude orchestrate it natively via tool calls.</span></div>
+        <div class="item-row info"><span class="item-icon">▸</span><span class="item-text"><b>GPT-5.2-Codex</b> — Current default model. Optimized for repo-scale reasoning, refactors, and iterative test-driven execution.</span></div>
+      </div>
+
+      <div class="section-title">Together — Emergent Benefits</div>
+      <div class="item-list">
+        <div class="item-row good"><span class="item-icon">⟳</span><span class="item-text"><b>Plan-Review loop</b> — Claude plans optimistically, Codex reviews defensively. Tension produces better output than either alone.</span></div>
+        <div class="item-row good"><span class="item-icon">⟳</span><span class="item-text"><b>True parallelism</b> — Claude handles context-heavy tasks locally; Codex handles independent tasks in cloud sandboxes simultaneously.</span></div>
+        <div class="item-row good"><span class="item-icon">⟳</span><span class="item-text"><b>Human stays in control</b> — The gate hook means nothing executes without explicit /approve. Autonmous but accountable.</span></div>
+      </div>
+    </div>
+
+    <!-- CAUTIONS PANE -->
+    <div id="pane-cautions" class="content-pane">
+      <div class="section-title">⚠ Known Risks &amp; Mitigations</div>
+      <div class="item-list">
+        <div class="item-row bad"><span class="item-icon">✖</span><span class="item-text"><b>Context window loss between agents</b> — Agents share no memory. Decisions made in Claude's plan may not be visible to Codex reviewer without explicit file passing.<small>Mitigation: Always write plan to plan.md before triggering Codex hook. Pass file path, not inline text.</small></span></div>
+        <div class="item-row bad"><span class="item-icon">✖</span><span class="item-text"><b>Conflicting suggestions</b> — Claude and Codex may suggest contradictory implementations. No automatic resolution.<small>Mitigation: Define a priority rule in CLAUDE.md: "Claude's plan is source of truth; Codex review is advisory only."</small></span></div>
+        <div class="item-row warn"><span class="item-icon">▲</span><span class="item-text"><b>Token cost escalation</b> — Dialogue loops (Phase 3) can run many turns. Each review pass costs tokens from both APIs.<small>Mitigation: Set max_turns on agent hooks (default 50). Add early-exit condition if plan passes quality threshold.</small></span></div>
+        <div class="item-row warn"><span class="item-icon">▲</span><span class="item-text"><b>Rate limiting</b> — Concurrent sub-agents + Codex reviews may hit API rate limits under heavy load.<small>Mitigation: Add jitter/backoff in codex-bridge.sh. Stagger hook-triggered Codex calls with a short sleep.</small></span></div>
+        <div class="item-row warn"><span class="item-icon">▲</span><span class="item-text"><b>Data transmission to external services</b> — Both tools send code to Anthropic and OpenAI respectively. Your IP and code leave your machine.<small>Mitigation: Review both data handling policies. Do not use with code under NDA without legal sign-off.</small></span></div>
+        <div class="item-row warn"><span class="item-icon">▲</span><span class="item-text"><b>Security vulnerabilities in agentic flows</b> — Late-Feb 2026 reports flagged RCE risk scenarios in Claude Code agentic workflows on developer machines. Fixes were issued but the attack surface is real.<small>Mitigation: Always run claude --dangerously-skip-permissions only in CI sandboxes. Use PreToolUse hooks to block rm, curl | bash, etc.</small></span></div>
+        <div class="item-row bad"><span class="item-icon">✖</span><span class="item-text"><b>Sub-agent scope creep</b> — Sub-agents with broad tool access can modify files outside their assigned scope.<small>Mitigation: Restrict sub-agent system prompts: "You may only modify files under src/auth/. Do not touch other directories."</small></span></div>
+      </div>
+
+      <div class="section-title">Security Checklist</div>
+      <div class="item-list">
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">PreToolUse hook blocks <code>rm -rf</code>, <code>curl | bash</code>, <code>sudo</code></span></div>
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">Codex sandbox has network disabled by default</span></div>
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">plan.approved.md checked before any execution</span></div>
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">HTTP audit hook logs all tool events to local service</span></div>
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">.env files excluded from all agent file access via PreToolUse</span></div>
+        <div class="item-row info"><span class="item-icon">□</span><span class="item-text">Sub-agents given minimum required file scope in system prompt</span></div>
+      </div>
+    </div>
+
+    <!-- PROGRESS PANE -->
+    <div id="pane-progress" class="content-pane">
+      <div class="section-title">Team Progress Tracker <span class="pill">/progress-report</span></div>
+
+      <div class="progress-bar-container">
+        <div class="progress-label">
+          <span>Integration Pipeline — Sprint 1</span>
+          <span id="pct-label">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="stage-list" id="stage-list"></div>
+
+      <div class="section-title" style="margin-top:8px">How /progress-report Works <span class="pill">UltraThink</span></div>
+      <div class="item-list">
+        <div class="item-row info"><span class="item-icon">▸</span><span class="item-text"><b>SubagentStop hook</b> — Every sub-agent writes a status JSON to <code>.claude/tmp/progress/{agent-id}.json</code> on stop. Contains: completed_tasks, blocked, est_remaining_ms.</span></div>
+        <div class="item-row info"><span class="item-icon">▸</span><span class="item-text"><b>UserPromptSubmit hook</b> — Detects <code>/progress-report</code>. Intercepts before reaching the model. Runs <code>progress-agg.sh</code> which reads all JSON files and renders TUI output.</span></div>
+        <div class="item-row info"><span class="item-icon">▸</span><span class="item-text"><b>TaskCompleted hook</b> — Fires when an agent marks a task done. Increments counter. Optionally sends Slack notification via HTTP hook.</span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>No polling</b> — Event-driven, not interval-based. Zero overhead when agents are idle. Instant update on completion.</span></div>
+        <div class="item-row good"><span class="item-icon">✦</span><span class="item-text"><b>Git checkpoint per task</b> — SessionEnd hook auto-commits with agent's prompt as commit message. Full rollback history at each stage.</span></div>
+      </div>
+    </div>
+
+    <!-- COMMANDS PANE -->
+    <div id="pane-cmds" class="content-pane">
+      <div class="section-title">Slash Commands <span class="pill">Claude Code</span></div>
+      <table class="cmd-table">
+        <tr><td class="cmd-key">/plan &lt;task&gt;</td><td class="cmd-desc">Enter planning mode. Claude decomposes task and writes plan.md</td></tr>
+        <tr><td class="cmd-key">/review</td><td class="cmd-desc">Manually trigger Codex review hook on current plan</td></tr>
+        <tr><td class="cmd-key">/approve</td><td class="cmd-desc">Write plan.approved.md, unblock the Stop hook, enable /go</td></tr>
+        <tr><td class="cmd-key">/reject &lt;reason&gt;</td><td class="cmd-desc">Append rejection reason to plan.md, restart dialogue loop</td></tr>
+        <tr><td class="cmd-key">/go</td><td class="cmd-desc">Read approved plan, spawn sub-agents per task cluster</td></tr>
+        <tr><td class="cmd-key">/delegate &lt;task-id&gt;</td><td class="cmd-desc">Prompt to delegate specific task to Codex CLI [y/N]</td></tr>
+        <tr><td class="cmd-key">/progress-report</td><td class="cmd-desc">Aggregate all sub-agent status files, render TUI progress bar</td></tr>
+        <tr><td class="cmd-key">/agents</td><td class="cmd-desc">List active sub-agents, their scope, and current status</td></tr>
+        <tr><td class="cmd-key">/audit</td><td class="cmd-desc">Show all PreToolUse log entries for current session</td></tr>
+      </table>
+
+      <div class="section-title">Codex CLI Flags <span class="pill">@openai/codex</span></div>
+      <table class="cmd-table">
+        <tr><td class="cmd-key">--review</td><td class="cmd-desc">Review mode: read input file, produce structured critique</td></tr>
+        <tr><td class="cmd-key">--approval-mode auto-edit</td><td class="cmd-desc">Auto-apply safe edits, prompt on destructive ops</td></tr>
+        <tr><td class="cmd-key">--input / --output</td><td class="cmd-desc">File-based I/O for hook bridge integration</td></tr>
+        <tr><td class="cmd-key">--sandbox</td><td class="cmd-desc">Force sandbox (macOS Seatbelt / Linux Landlock)</td></tr>
+        <tr><td class="cmd-key">mcp start</td><td class="cmd-desc">Run Codex as an MCP server for Claude to call as a tool</td></tr>
+        <tr><td class="cmd-key">--full-auto</td><td class="cmd-desc">No prompts — use only in CI with pre-approved scripts</td></tr>
+      </table>
+
+      <div class="section-title">Quick Start <span class="pill">team setup</span></div>
+<pre><span class="cm"># 1. Install both tools</span>
+npm i -g @openai/codex
+<span class="cm"># Claude Code: install from anthropic.com/claude-code</span>
+
+<span class="cm"># 2. Start Codex as MCP server (lets Claude call it as a tool)</span>
+codex mcp start &amp;
+claude mcp add codex -- npx @openai/codex mcp start
+
+<span class="cm"># 3. Place hook config in your project</span>
+cp .claude/settings.json.template .claude/settings.json
+
+<span class="cm"># 4. Start a session — hooks auto-load</span>
+claude
+
+<span class="cm"># 5. Begin the pipeline</span>
+/plan "add payment module with Stripe webhooks"</pre>
+    </div>
+
+  </div><!-- /center -->
+
+  <!-- RIGHT PANEL -->
+  <div id="right">
+    <div class="side-section">
+      <div class="side-section-title">Active Agents</div>
+      <div class="side-content">
+        <div class="agent-row">
+          <div class="agent-dot" style="background:var(--claude)"></div>
+          <span class="agent-name">claude:planner</span>
+          <span class="agent-status">idle</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot" style="background:var(--codex)"></div>
+          <span class="agent-name">codex:reviewer</span>
+          <span class="agent-status">idle</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot" style="background:var(--muted)"></div>
+          <span class="agent-name">sub:auth</span>
+          <span class="agent-status" style="color:var(--muted)">waiting</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot" style="background:var(--muted)"></div>
+          <span class="agent-name">sub:db</span>
+          <span class="agent-status" style="color:var(--muted)">waiting</span>
+        </div>
+        <div class="agent-row">
+          <div class="agent-dot" style="background:var(--muted)"></div>
+          <span class="agent-name">sub:api</span>
+          <span class="agent-status" style="color:var(--muted)">waiting</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-section-title">Pipeline State</div>
+      <div class="side-content">
+        <div style="color:var(--text-dim);margin-bottom:4px">Phase</div>
+        <div style="color:var(--yellow);margin-bottom:8px">④ Awaiting approval</div>
+        <div style="color:var(--text-dim);margin-bottom:4px">Plan status</div>
+        <div style="color:var(--text-dim);margin-bottom:8px">plan.refined.md ✓</div>
+        <div style="color:var(--text-dim);margin-bottom:4px">Iterations</div>
+        <div style="color:var(--codex);margin-bottom:8px">2 review loops</div>
+        <div style="color:var(--text-dim);margin-bottom:4px">Gate</div>
+        <div style="color:var(--red)">🔒 Locked</div>
+      </div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-section-title">Hook Events (session)</div>
+      <div class="side-content" style="font-size:10px;color:var(--text-dim)">
+        <div>09:12:03 <span style="color:var(--green)">SessionStart</span></div>
+        <div>09:12:31 <span style="color:var(--claude)">PostToolUse</span> Write</div>
+        <div>09:13:04 <span style="color:var(--codex)">codex-review</span> ok</div>
+        <div>09:14:12 <span style="color:var(--claude)">SubagentStop</span></div>
+        <div>09:14:45 <span style="color:var(--claude)">PostToolUse</span> Write</div>
+        <div>09:15:22 <span style="color:var(--codex)">codex-review</span> ok</div>
+        <div>09:16:01 <span style="color:var(--claude)">SubagentStop</span></div>
+        <div>09:16:02 <span style="color:var(--yellow)">Stop</span> blocked→gate</div>
+      </div>
+    </div>
+
+    <div class="side-section" style="border-bottom:none">
+      <div class="side-section-title">Quick Ref</div>
+      <div class="side-content" style="font-size:10px;color:var(--text-dim)">
+        <div><span style="color:var(--text)">/approve</span> — unlock gate</div>
+        <div><span style="color:var(--text)">/go</span> — spawn agents</div>
+        <div><span style="color:var(--text)">/progress-report</span></div>
+        <div><span style="color:var(--text)">/delegate &lt;id&gt;</span></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- BOTTOM BAR -->
+<div id="bottombar">
+  <span><span class="bb-key">Tab</span> <span class="bb-desc">switch panel</span></span>
+  <span><span class="bb-key">Enter</span> <span class="bb-desc">expand node</span></span>
+  <span><span class="bb-key">Esc</span> <span class="bb-desc">close modal</span></span>
+  <span><span class="bb-key">Click</span> <span class="bb-desc">any node for detail</span></span>
+  <span><span class="bb-key">Progress tab</span> <span class="bb-desc">click stages to toggle</span></span>
+  <div class="bb-right">Claude Code × Codex v1.0 — team workflow</div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="detail-overlay" onclick="closeDetail(event)">
+  <div id="detail-box">
+    <span class="detail-close" onclick="closeDetail(null, true)">✕</span>
+    <div class="detail-title" id="detail-title"></div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
+</div>
+
+<script>
+const DETAILS = {
+  plan: {
+    title: '① Claude Code — Planning Phase',
+    body: `<p>Claude Code enters <strong style="color:#c97f3a">plan mode</strong> — a read-only reasoning phase where it cannot write files yet. It reads the entire codebase using agentic search and produces a structured plan.</p>
+<p style="margin-top:8px"><strong>Plan document structure:</strong></p>
+<div class="detail-pre">## Objective
+Implement OAuth2 with refresh tokens
+
+## File Map
+- src/auth/oauth.ts     [CREATE]
+- src/auth/tokens.ts    [CREATE]
+- src/middleware/auth.ts [MODIFY]
+- tests/auth.test.ts    [CREATE]
+
+## Task Clusters
+1. Token service (isolated — delegatable)
+2. OAuth flow (depends on 1)
+3. Middleware integration (depends on 1,2)
+4. Test suite (parallel after 2)
+
+## Dependencies
+- passport, passport-oauth2, jsonwebtoken
+## Estimated sub-agents: 3</div>
+<div class="detail-note">⚑ Tip: The more specific your initial prompt, the tighter Claude's plan. Include tech stack, existing patterns, and constraints upfront.</div>`
+  },
+  review: {
+    title: '② Codex — Review Phase',
+    body: `<p>PostToolUse hook fires when Claude writes plan.md. The <strong style="color:#4a9eff">codex-review.sh</strong> bridge script is called with the file path. Codex reads the plan and returns a structured critique.</p>
+<p style="margin-top:8px"><strong>Codex review output (codex-review.md):</strong></p>
+<div class="detail-pre">## Gaps Found
+- [ ] No token expiry rotation strategy defined
+- [ ] PKCE flow not mentioned — needed for SPAs
+- [ ] Race condition possible in refresh token reuse
+
+## Security Concerns
+- [ ] Store refresh tokens as hashed values
+- [ ] Add revocation endpoint
+
+## Missing Tests
+- [ ] Concurrent refresh token requests
+- [ ] Expired token edge case
+
+## Approved Items ✓
+- File structure looks correct
+- Dependency choices appropriate</div>
+<div class="detail-note">⚑ Codex acts as a "defensive reviewer" — it looks for what's missing, not just what's wrong. This tension with Claude's optimistic planning produces better specs.</div>`
+  },
+  dialogue: {
+    title: '③ Claude ↔ Codex Iterative Dialogue',
+    body: `<p>The <strong style="color:#b06fe4">SubagentStop hook</strong> returns Codex's review to Claude as a new agent prompt. Claude refines the plan, writes plan.refined.md, which triggers another PostToolUse → Codex review cycle.</p>
+<p style="margin-top:8px"><strong>Loop control:</strong></p>
+<div class="detail-pre">// In SubagentStop agent hook prompt:
+"Read codex-review.md.
+ If all items are marked [✓], write DONE to
+ .claude/tmp/review-status and return ok=true.
+ Otherwise refine plan.md to address open items
+ and save as plan.refined.md."</div>
+<p style="margin-top:8px">The loop terminates when Codex marks all review items resolved, or after a configurable max iteration count.</p>
+<div class="detail-note">⚑ Best practice: set max 3 iterations. Beyond that, surface to human — the agents may be stuck in disagreement that needs judgment, not more loops.</div>`
+  },
+  gate: {
+    title: '④ Stakeholder Gate',
+    body: `<p>The <strong style="color:#e8c84a">Stop hook</strong> returns <code>ok: false</code> until <code>plan.approved.md</code> exists. Claude cannot proceed to execution. This is enforced at the hook level — not the prompt level.</p>
+<div class="detail-pre">// Stop hook agent prompt:
+"Check if .claude/tmp/plan.approved.md exists.
+ If yes: return {ok: true}
+ If no: return {
+   ok: false,
+   reason: 'Awaiting stakeholder approval. Run /approve.'
+ }"</div>
+<p style="margin-top:8px"><strong>Approval flow:</strong></p>
+<div class="detail-pre">$ /approve          # writes plan.approved.md, unblocks Stop
+$ /reject "missing PKCE"  # appends note, restarts loop
+$ /edit plan.md     # direct edit before approval</div>
+<div class="detail-note">⚑ The gate is the most important safety mechanism in this pipeline. Never skip it, even for "small" tasks — agentic execution can cascade quickly.</div>`
+  },
+  go: {
+    title: '⑤ /go — Sub-agent Launch',
+    body: `<p>On <code>/go</code>, the UserPromptSubmit hook detects the command and triggers a TaskCompleted hook chain. Claude reads the approved plan, identifies task clusters, and spawns one sub-agent per cluster.</p>
+<div class="detail-pre">// Each sub-agent gets a scoped system prompt:
+"You are sub-agent 'auth'.
+ Your scope: src/auth/ only.
+ Do not read or write outside this path.
+ Task: Implement OAuth2 token service per plan.
+ When done, write status to:
+ .claude/tmp/progress/auth.json"</div>
+<p style="margin-top:8px">Sub-agents run in isolated context windows. They cannot see each other's work unless explicitly passed via files. This prevents cross-contamination.</p>
+<div class="detail-note">⚑ Sub-agents with overlapping file scopes can cause merge conflicts. Define non-overlapping directory ownership in each sub-agent's system prompt.</div>`
+  },
+  parallel: {
+    title: '⑥ Codex Delegation for Parallelism',
+    body: `<p>When Claude identifies an <strong style="color:#b06fe4">independent task</strong> (no dependencies on in-progress work), it prompts the user for optional Codex delegation.</p>
+<div class="detail-pre">Claude: "Task 'token-service' has no dependencies.
+Delegate to Codex for parallel execution? [y/N]"
+
+> y
+
+→ codex --approval-mode auto-edit \
+    --input .claude/tasks/token-service.md \
+    --output src/auth/tokens.ts &amp;
+
+→ Claude continues with auth-flow task locally</div>
+<p style="margin-top:8px"><strong>Why this matters:</strong> Claude's context window handles local state-heavy tasks. Codex's cloud sandboxes handle independent tasks that can run asynchronously without blocking your terminal.</p>
+<div class="detail-note">⚑ Only delegate tasks you could accept a complete rewrite of. Codex delegation bypasses Claude's planning context — the output must be validated before merge.</div>`
+  },
+  'progress-report': {
+    title: '⑦ /progress-report — Event-Driven Tracking',
+    body: `<p>Every sub-agent writes a status JSON on <strong style="color:#3dd8da">SubagentStop</strong>. The <code>/progress-report</code> command aggregates these files and renders a TUI progress view.</p>
+<div class="detail-pre">// .claude/tmp/progress/auth.json
+{
+  "agent": "auth",
+  "status": "done",
+  "tasks_total": 3,
+  "tasks_done": 3,
+  "blocked_on": null,
+  "last_updated": "2026-03-24T09:16:01Z"
+}
+
+// progress-agg.sh output:
+Pipeline: ████████████░░░░  75% [3/4 tasks]
+  [✓] auth      done    (09:14)
+  [✓] db        done    (09:15)
+  [~] api       running (est. 4min)
+  [□] tests     waiting</div>
+<p style="margin-top:8px">No polling — fully event-driven via hooks. Git checkpoint is created on each TaskCompleted event for full rollback history.</p>
+<div class="detail-note">⚑ UltraThink best practice: TaskCompleted → HTTP hook → Slack webhook. Your team sees progress without watching a terminal.</div>`
+  }
+};
+
+function showDetail(key) {
+  const d = DETAILS[key];
+  if (!d) return;
+  document.getElementById('detail-title').innerHTML = d.title;
+  document.getElementById('detail-body').innerHTML = d.body;
+  document.getElementById('detail-overlay').classList.add('open');
+}
+
+function closeDetail(e, force) {
+  if (force || (e && e.target === document.getElementById('detail-overlay'))) {
+    document.getElementById('detail-overlay').classList.remove('open');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDetail(null, true);
+});
+
+function switchTab(id, el) {
+  document.querySelectorAll('.tb-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  showPane(id);
+}
+
+function switchNav(id, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  showPane(id);
+  // sync tab bar
+  document.querySelectorAll('.tb-tab').forEach(t => {
+    if (t.getAttribute('onclick')?.includes(`'${id}'`)) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+}
+
+function showPane(id) {
+  document.querySelectorAll('.content-pane').forEach(p => p.classList.remove('active'));
+  const p = document.getElementById('pane-' + id);
+  if (p) p.classList.add('active');
+}
+
+// ─── PROGRESS TRACKER ───
+const STAGES = [
+  { id: 'setup', label: 'Install Claude Code + Codex CLI', owner: 'ops', state: 'done' },
+  { id: 'hooks', label: 'Configure hook settings.json', owner: 'lead-dev', state: 'done' },
+  { id: 'bridge', label: 'Write codex-review.sh bridge', owner: 'lead-dev', state: 'done' },
+  { id: 'context', label: 'Define team-context.md', owner: 'lead-dev', state: 'inprog' },
+  { id: 'agents', label: 'Define sub-agent system prompts', owner: 'team', state: 'todo' },
+  { id: 'progress', label: 'Implement /progress-report', owner: 'team', state: 'todo' },
+  { id: 'pilot', label: 'Pilot run on small task', owner: 'team', state: 'todo' },
+  { id: 'retro', label: 'Team retrospective + tune', owner: 'all', state: 'todo' },
+];
+
+function renderProgress() {
+  const list = document.getElementById('stage-list');
+  if (!list) return;
+  list.innerHTML = '';
+  let done = 0;
+  STAGES.forEach(s => {
+    if (s.state === 'done') done++;
+    const row = document.createElement('div');
+    row.className = 'stage-item';
+    row.innerHTML = `
+      <div class="stage-check ${s.state === 'done' ? 'done' : s.state === 'inprog' ? 'inprog' : ''}">${s.state === 'done' ? '✓' : s.state === 'inprog' ? '~' : ''}</div>
+      <span class="stage-text ${s.state === 'done' ? 'done-text' : ''}">${s.label}</span>
+      <span class="stage-owner">${s.owner}</span>`;
+    row.onclick = () => {
+      if (s.state === 'todo') s.state = 'inprog';
+      else if (s.state === 'inprog') s.state = 'done';
+      else s.state = 'todo';
+      renderProgress();
+    };
+    list.appendChild(row);
+  });
+  const pct = Math.round((done / STAGES.length) * 100);
+  document.getElementById('pct-label').textContent = pct + '%';
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+renderProgress();
+</script>
+</body>
+</html>
