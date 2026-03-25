@@ -3,30 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Claude x Codex | Agent Workflow PWA</title>
-  <meta name="description" content="A polished single-page GitHub Pages app showing how Claude and Codex can collaborate across planning, review, execution, and progress tracking.">
-  <meta name="theme-color" content="#111827">
-  <meta name="color-scheme" content="dark light">
+  <title>Claude x Codex | Agent Workflow POC</title>
+  <meta name="description" content="Minimal single-page GitHub Pages app showing a developer workflow that combines Claude planning with Codex review and execution.">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="color-scheme" content="dark">
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="./manifest.webmanifest">
   <style>
     :root {
-      --bg: #09111f;
-      --bg-soft: #0f172a;
-      --panel: rgba(15, 23, 42, 0.82);
-      --panel-strong: rgba(17, 24, 39, 0.94);
-      --line: rgba(148, 163, 184, 0.18);
-      --line-strong: rgba(148, 163, 184, 0.34);
-      --text: #e5eefc;
-      --muted: #9aa9c4;
-      --claude: #f29a38;
-      --codex: #4fb7ff;
-      --accent: #6ee7b7;
-      --warn: #f5c451;
+      --bg: #0b0f14;
+      --bg-elevated: #11161d;
+      --bg-subtle: #161c24;
+      --line: #232a34;
+      --line-strong: #313b48;
+      --text: #e6edf3;
+      --muted: #8b98a8;
+      --claude: #f59e0b;
+      --codex: #38bdf8;
+      --ok: #22c55e;
+      --warn: #facc15;
       --danger: #fb7185;
-      --shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
-      --radius: 22px;
-      --max: 1180px;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      --radius: 14px;
+      --max-width: 1120px;
     }
 
     * {
@@ -39,516 +38,412 @@
 
     body {
       margin: 0;
+      background: var(--bg);
       color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(79, 183, 255, 0.16), transparent 28%),
-        radial-gradient(circle at top right, rgba(242, 154, 56, 0.18), transparent 26%),
-        linear-gradient(180deg, #08101d 0%, #0b1220 45%, #0d1528 100%);
-      font-family: Georgia, "Times New Roman", serif;
-      line-height: 1.6;
+      font: 15px/1.6 "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     }
 
     a {
       color: inherit;
+      text-decoration: none;
     }
 
     code {
-      font-family: "SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", monospace;
-      font-size: 0.94em;
+      font: inherit;
+      color: var(--text);
     }
 
-    .shell {
-      width: min(var(--max), calc(100% - 32px));
+    .container {
+      width: min(calc(100% - 32px), var(--max-width));
       margin: 0 auto;
     }
 
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 20;
-      backdrop-filter: blur(18px);
-      background: rgba(8, 16, 29, 0.72);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+      z-index: 10;
+      background: rgba(11, 15, 20, 0.92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
     }
 
     .topbar-inner {
+      min-height: 60px;
       display: flex;
       align-items: center;
-      gap: 16px;
       justify-content: space-between;
-      min-height: 68px;
+      gap: 16px;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-weight: 700;
-      letter-spacing: 0.04em;
+      font-size: 13px;
       text-transform: uppercase;
-      font-size: 0.9rem;
+      letter-spacing: 0.08em;
     }
 
     .brand-mark {
-      width: 38px;
-      height: 38px;
+      width: 28px;
+      height: 28px;
       display: grid;
       place-items: center;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(242, 154, 56, 0.25), rgba(79, 183, 255, 0.28));
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      color: var(--text);
     }
 
-    .brand-label strong {
-      display: block;
-      color: #ffffff;
-      font-size: 0.95rem;
+    .brand-meta {
+      display: grid;
+      gap: 2px;
     }
 
-    .brand-label span {
+    .brand-meta strong {
+      font-size: 13px;
+    }
+
+    .brand-meta span {
       color: var(--muted);
-      display: block;
-      font-size: 0.72rem;
-      letter-spacing: 0.08em;
+      font-size: 11px;
     }
 
     .nav {
       display: flex;
-      gap: 12px;
+      gap: 16px;
       flex-wrap: wrap;
-      justify-content: flex-end;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.92rem;
-    }
-
-    .nav a {
-      text-decoration: none;
       color: var(--muted);
+      font-size: 13px;
     }
 
-    .nav a:hover {
-      color: #ffffff;
+    .nav a:hover,
+    .nav a:focus-visible {
+      color: var(--text);
+    }
+
+    main {
+      padding: 28px 0 48px;
     }
 
     .hero {
-      padding: 64px 0 34px;
-    }
-
-    .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
-      gap: 28px;
-      align-items: stretch;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 20px;
+      margin-bottom: 20px;
     }
 
-    .hero-copy,
-    .hero-console,
-    .panel,
-    .card,
-    .tab-shell {
-      background: var(--panel);
+    .panel {
+      background: var(--bg-elevated);
       border: 1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
     }
 
-    .hero-copy {
-      padding: 36px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-copy::after {
-      content: "";
-      position: absolute;
-      inset: auto -40px -90px auto;
-      width: 220px;
-      height: 220px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(79, 183, 255, 0.2), transparent 65%);
-      pointer-events: none;
+    .panel-body {
+      padding: 22px;
     }
 
     .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(255, 255, 255, 0.03);
+      gap: 8px;
+      margin-bottom: 16px;
       color: var(--muted);
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.82rem;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
 
-    .eyebrow-dot {
+    .dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--claude), var(--codex));
+      background: var(--ok);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
     }
 
     h1,
     h2,
     h3 {
       margin: 0;
-      line-height: 1.1;
+      font-size: inherit;
       font-weight: 600;
     }
 
     h1 {
-      margin-top: 20px;
-      font-size: clamp(2.7rem, 5vw, 4.8rem);
-      letter-spacing: -0.04em;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
     }
 
     .hero-copy p {
-      margin: 20px 0 0;
-      max-width: 60ch;
-      color: var(--muted);
-      font-size: 1.04rem;
+      margin-top: 16px;
+      max-width: 68ch;
     }
 
-    .hero-stats {
+    .summary-grid {
+      margin-top: 20px;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
-      margin-top: 26px;
     }
 
-    .stat {
+    .summary-item {
       padding: 14px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-subtle);
     }
 
-    .stat strong {
+    .summary-item strong {
       display: block;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 1.35rem;
-      color: #ffffff;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-size: 18px;
     }
 
-    .stat span {
-      color: var(--muted);
-      font-size: 0.84rem;
-    }
-
-    .action-row {
+    .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 28px;
+      gap: 10px;
+      margin-top: 20px;
     }
 
     .button,
     button {
       appearance: none;
-      border: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--bg-subtle);
+      color: var(--text);
+      font: inherit;
       cursor: pointer;
-      text-decoration: none;
-      border-radius: 999px;
-      padding: 12px 18px;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
     }
 
     .button:hover,
-    button:hover {
-      transform: translateY(-1px);
+    button:hover,
+    .button:focus-visible,
+    button:focus-visible {
+      border-color: var(--codex);
+      outline: none;
     }
 
     .button-primary {
-      color: #09111f;
-      background: linear-gradient(135deg, #f8d06d, #6ee7b7);
-      box-shadow: 0 10px 24px rgba(110, 231, 183, 0.24);
+      border-color: var(--codex);
+      background: #101a23;
     }
 
-    .button-secondary {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(148, 163, 184, 0.2);
+    .status {
+      min-height: 20px;
+      margin-top: 12px;
+      color: var(--text);
+      font-size: 13px;
     }
-
-    .button-ghost {
-      color: var(--muted);
-      background: transparent;
-      border: 1px dashed rgba(148, 163, 184, 0.3);
-    }
-
-    .hero-console {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      min-height: 100%;
-    }
-
-    .console-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-family: "SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", monospace;
-      font-size: 0.84rem;
-      color: var(--muted);
-    }
-
-    .window-dots {
-      display: flex;
-      gap: 8px;
-    }
-
-    .window-dots span {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-
-    .window-dots span:nth-child(1) { background: #ff6b6b; }
-    .window-dots span:nth-child(2) { background: #ffd166; }
-    .window-dots span:nth-child(3) { background: #4ade80; }
 
     .terminal {
-      padding: 20px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(2, 6, 23, 0.88), rgba(15, 23, 42, 0.98));
-      border: 1px solid rgba(79, 183, 255, 0.2);
-      flex: 1;
-      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
     }
 
-    .terminal h2 {
-      font-size: 1.15rem;
-      margin-bottom: 14px;
+    .terminal-head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
     }
 
-    .terminal-list {
+    .terminal-body {
+      padding: 16px;
       display: grid;
       gap: 12px;
     }
 
-    .terminal-step {
-      display: grid;
-      grid-template-columns: 36px minmax(0, 1fr);
-      gap: 14px;
-      align-items: start;
+    .terminal-block {
       padding: 12px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(148, 163, 184, 0.11);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0d1218;
     }
 
-    .step-index {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      border-radius: 14px;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-weight: 700;
-      color: #08101d;
-      background: linear-gradient(135deg, var(--claude), var(--codex));
+    .terminal-label {
+      margin-bottom: 6px;
+      color: var(--text);
     }
 
-    .terminal-step strong {
-      display: block;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      margin-bottom: 4px;
-    }
-
-    .terminal-step span {
+    .terminal-text {
       color: var(--muted);
-      font-size: 0.94rem;
+      font-size: 14px;
     }
 
-    .terminal-step code {
-      display: inline-block;
-      margin-top: 7px;
-      color: #b9dbff;
+    .terminal-cmd {
+      margin-top: 8px;
+      color: var(--codex);
+      overflow-wrap: anywhere;
     }
 
     .section {
-      padding: 24px 0;
+      margin-top: 20px;
     }
 
     .section-header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
-    .section-header p {
-      margin: 8px 0 0;
-      max-width: 60ch;
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .section-kicker {
       color: var(--muted);
-    }
-
-    .kicker {
-      display: inline-block;
-      margin-bottom: 8px;
-      color: #c5d4ef;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.8rem;
-      letter-spacing: 0.08em;
+      font-size: 12px;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .grid {
+    .section-copy {
+      max-width: 74ch;
+    }
+
+    .card-grid {
       display: grid;
-      gap: 18px;
-    }
-
-    .grid-3 {
+      gap: 12px;
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .grid-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .card {
-      padding: 24px;
-    }
-
-    .card h3 {
-      font-size: 1.22rem;
-      margin-bottom: 10px;
-    }
-
-    .card p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .chip-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.8rem;
-    }
-
-    .chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      color: var(--muted);
-    }
-
-    .timeline {
-      display: grid;
-      gap: 14px;
-    }
-
-    .timeline-card {
-      display: grid;
-      grid-template-columns: 84px minmax(0, 1fr);
-      gap: 18px;
-      padding: 22px;
-      border-radius: 24px;
-      background: var(--panel-strong);
+    .card,
+    .workflow-card,
+    .list-item {
+      padding: 16px;
       border: 1px solid var(--line);
-      box-shadow: var(--shadow);
+      border-radius: 12px;
+      background: var(--bg-elevated);
     }
 
-    .timeline-index {
-      display: grid;
-      gap: 8px;
-      align-content: start;
-      justify-items: start;
-    }
-
-    .timeline-index strong {
-      width: 52px;
-      height: 52px;
-      display: grid;
-      place-items: center;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 1.15rem;
-    }
-
-    .timeline-index span {
+    .card-label {
+      display: inline-block;
+      margin-bottom: 10px;
       color: var(--muted);
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 12px;
       text-transform: uppercase;
-      font-size: 0.75rem;
       letter-spacing: 0.08em;
     }
 
-    .timeline-copy h3 {
-      font-size: 1.34rem;
+    .card h3,
+    .workflow-card h3,
+    .list-item strong {
+      display: block;
       margin-bottom: 8px;
+      color: var(--text);
     }
 
-    .timeline-copy p {
-      margin: 0 0 10px;
+    .workflow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .workflow-card {
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .workflow-index {
+      display: grid;
+      gap: 6px;
+      justify-items: start;
+    }
+
+    .workflow-phase {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--bg-subtle);
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    .workflow-owner {
       color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .timeline-copy code {
-      color: #a9d5ff;
+    .workflow-command {
+      margin: 8px 0 0;
+      color: var(--codex);
+      overflow-wrap: anywhere;
     }
 
     .meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       margin-top: 10px;
     }
 
     .meta span {
-      padding: 6px 10px;
+      padding: 4px 8px;
+      border: 1px solid var(--line);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(148, 163, 184, 0.16);
-      color: #d8e4fb;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.8rem;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
     .tab-shell {
-      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg-elevated);
+      overflow: hidden;
     }
 
     .tab-buttons {
       display: flex;
-      gap: 10px;
+      gap: 0;
       flex-wrap: wrap;
-      margin-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+      background: #0f141a;
     }
 
     .tab-button {
-      background: rgba(255, 255, 255, 0.04);
+      border: 0;
+      border-right: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
       color: var(--muted);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      padding: 12px 16px;
     }
 
     .tab-button.active {
-      background: linear-gradient(135deg, rgba(242, 154, 56, 0.2), rgba(79, 183, 255, 0.18));
-      color: #ffffff;
-      border-color: rgba(79, 183, 255, 0.35);
+      background: var(--bg-elevated);
+      color: var(--text);
     }
 
     .tab-panel {
       display: none;
+      padding: 16px;
     }
 
     .tab-panel.active {
@@ -557,448 +452,329 @@
 
     .list {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .list-item {
-      padding: 16px 18px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(148, 163, 184, 0.12);
+      background: var(--bg-subtle);
     }
 
-    .list-item strong {
-      display: block;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      margin-bottom: 6px;
+    .risk-danger {
+      border-left: 3px solid var(--danger);
     }
 
-    .list-item p {
-      margin: 0;
-      color: var(--muted);
+    .risk-warn {
+      border-left: 3px solid var(--warn);
     }
 
-    .list-item code {
-      color: #bfe4ff;
-    }
-
-    .risk {
-      border-left: 4px solid transparent;
-    }
-
-    .risk.warn {
-      border-left-color: var(--warn);
-    }
-
-    .risk.danger {
-      border-left-color: var(--danger);
-    }
-
-    .risk.info {
-      border-left-color: var(--codex);
+    .risk-info {
+      border-left: 3px solid var(--codex);
     }
 
     .footer {
-      padding: 24px 0 48px;
-      color: var(--muted);
-      font-size: 0.92rem;
+      margin-top: 20px;
+      padding-bottom: 24px;
     }
 
-    .footer-card {
-      padding: 24px;
+    .footer-inner {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 18px;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg-elevated);
     }
 
-    .status {
-      min-height: 24px;
-      margin-top: 14px;
-      color: #dfeeff;
-      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-      font-size: 0.9rem;
-    }
-
-    .small {
+    .footer-meta {
       color: var(--muted);
-      font-size: 0.88rem;
+      font-size: 13px;
     }
 
-    @media (max-width: 980px) {
-      .hero-grid,
-      .grid-3,
-      .grid-2 {
+    @media (max-width: 920px) {
+      .hero,
+      .card-grid,
+      .split {
         grid-template-columns: 1fr;
       }
 
-      .section-header,
-      .footer-card {
-        align-items: start;
-        flex-direction: column;
-      }
-
-      .timeline-card {
+      .summary-grid {
         grid-template-columns: 1fr;
       }
 
-      .timeline-index {
-        justify-items: start;
+      .workflow-card {
+        grid-template-columns: 1fr;
       }
     }
 
     @media (max-width: 700px) {
-      .topbar-inner {
-        padding: 10px 0;
-        align-items: start;
+      .topbar-inner,
+      .footer-inner {
         flex-direction: column;
-      }
-
-      .hero {
-        padding-top: 38px;
-      }
-
-      .hero-copy,
-      .hero-console,
-      .card,
-      .tab-shell,
-      .timeline-card {
-        border-radius: 18px;
-      }
-
-      .hero-copy {
-        padding: 24px;
-      }
-
-      .hero-stats {
-        grid-template-columns: 1fr;
-      }
-
-      h1 {
-        font-size: 2.45rem;
+        align-items: flex-start;
       }
 
       .nav {
-        justify-content: flex-start;
+        gap: 12px;
+      }
+
+      .container {
+        width: min(calc(100% - 20px), var(--max-width));
+      }
+
+      main {
+        padding-top: 18px;
       }
     }
   </style>
 </head>
 <body>
   <header class="topbar">
-    <div class="shell topbar-inner">
+    <div class="container topbar-inner">
       <div class="brand">
         <div class="brand-mark">CX</div>
-        <div class="brand-label">
+        <div class="brand-meta">
           <strong>Claude x Codex</strong>
-          <span>GitHub Pages single-page PWA</span>
+          <span>developer workflow / minimal pwa</span>
         </div>
       </div>
       <nav class="nav" aria-label="Primary">
-        <a href="#overview">Overview</a>
-        <a href="#workflow">Workflow</a>
-        <a href="#console">Console</a>
-        <a href="#risks">Risks</a>
-        <a href="#launch">Launch</a>
+        <a href="#overview">overview</a>
+        <a href="#workflow">workflow</a>
+        <a href="#reference">reference</a>
+        <a href="#risks">risks</a>
+        <a href="#assets">assets</a>
       </nav>
     </div>
   </header>
 
-  <main>
+  <main class="container">
     <section class="hero">
-      <div class="shell hero-grid">
-        <div class="hero-copy">
+      <div class="panel hero-copy">
+        <div class="panel-body">
           <div class="eyebrow">
-            <span class="eyebrow-dot" aria-hidden="true"></span>
-            Presentable from anywhere, installable on any device
+            <span class="dot" aria-hidden="true"></span>
+            public github pages entry
           </div>
-          <h1>One sharable page for the Claude and Codex workflow.</h1>
+          <h1>Minimal public page for a Claude plus Codex workflow.</h1>
           <p>
-            This page turns the original TUI concept into a polished public-facing experience:
-            responsive on mobile, installable as a PWA, and ready to publish through GitHub Pages
-            with a single repository link.
+            This version drops the marketing look. It keeps the useful parts:
+            workflow phases, hook reference, commands, risks, and direct links to the raw TUI and slide deck.
           </p>
-          <div class="hero-stats">
-            <div class="stat">
-              <strong>7 phases</strong>
-              <span>Plan, critique, gate, execute, and report</span>
+          <div class="summary-grid">
+            <div class="summary-item">
+              <strong>7</strong>
+              <span>workflow phases</span>
             </div>
-            <div class="stat">
-              <strong>15 hooks</strong>
-              <span>Lifecycle control points for deterministic behavior</span>
+            <div class="summary-item">
+              <strong>15</strong>
+              <span>hook events in play</span>
             </div>
-            <div class="stat">
-              <strong>1 app shell</strong>
-              <span>Offline-capable single page with local install support</span>
+            <div class="summary-item">
+              <strong>1</strong>
+              <span>installable page shell</span>
             </div>
           </div>
-          <div class="action-row">
-            <a class="button button-primary" href="#launch">Open the Page Plan</a>
-            <button class="button button-secondary" id="share-button" type="button">Share link</button>
-            <button class="button button-ghost" id="install-button" type="button" hidden>Install app</button>
+          <div class="actions">
+            <a class="button button-primary" href="#workflow">Read workflow</a>
+            <button class="button" id="share-button" type="button">Share link</button>
+            <button class="button" id="install-button" type="button" hidden>Install app</button>
           </div>
           <div class="status" id="share-status" aria-live="polite"></div>
         </div>
-
-        <aside class="hero-console">
-          <div class="console-top">
-            <div class="window-dots" aria-hidden="true">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <span>live concept snapshot</span>
-          </div>
-          <div class="terminal">
-            <h2>Agent pipeline in one glance</h2>
-            <div class="terminal-list">
-              <div class="terminal-step">
-                <div class="step-index">1</div>
-                <div>
-                  <strong>Claude plans</strong>
-                  <span>Breaks the task into file map, dependencies, and scoped work clusters.</span>
-                  <code>/plan "add payment module with Stripe webhooks"</code>
-                </div>
-              </div>
-              <div class="terminal-step">
-                <div class="step-index">2</div>
-                <div>
-                  <strong>Codex reviews</strong>
-                  <span>Checks for edge cases, security gaps, and implementation risk before any execution begins.</span>
-                  <code>codex --review --input plan.md --output review.md</code>
-                </div>
-              </div>
-              <div class="terminal-step">
-                <div class="step-index">3</div>
-                <div>
-                  <strong>Human approves</strong>
-                  <span>The gate keeps the workflow accountable. Execution does not start until the plan is explicitly approved.</span>
-                  <code>/approve</code>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
+
+      <aside class="panel terminal">
+        <div class="terminal-head">
+          <span>session preview</span>
+          <span>ready</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-block">
+            <div class="terminal-label">plan</div>
+            <div class="terminal-text">Claude decomposes the task into files, dependencies, and isolated work units.</div>
+            <div class="terminal-cmd">/plan "add payment module with Stripe webhooks"</div>
+          </div>
+          <div class="terminal-block">
+            <div class="terminal-label">review</div>
+            <div class="terminal-text">Codex critiques the plan before any write-heavy execution starts.</div>
+            <div class="terminal-cmd">codex --review --input plan.md --output review.md</div>
+          </div>
+          <div class="terminal-block">
+            <div class="terminal-label">gate</div>
+            <div class="terminal-text">Human approval is required before launch.</div>
+            <div class="terminal-cmd">/approve -> /go</div>
+          </div>
+        </div>
+      </aside>
     </section>
 
     <section class="section" id="overview">
-      <div class="shell">
-        <div class="section-header">
-          <div>
-            <span class="kicker">Overview</span>
-            <h2>The original TUI, reframed as a public product page.</h2>
-            <p>
-              The source HTML already contains strong content. This version makes it easier to share:
-              clearer hierarchy, smaller cognitive load, better mobile layout, and direct install or share actions.
-            </p>
-          </div>
-        </div>
-        <div class="grid grid-3">
-          <article class="card">
-            <div class="chip-row">
-              <span class="chip">Claude strength</span>
-            </div>
-            <h3>Long-horizon planning</h3>
-            <p>Claude handles structure well: specifications, dependencies, file mapping, and multi-step execution plans.</p>
-          </article>
-          <article class="card">
-            <div class="chip-row">
-              <span class="chip">Codex strength</span>
-            </div>
-            <h3>Defensive review</h3>
-            <p>Codex brings repo-scale critique, safe execution patterns, and optional delegation for independent tasks.</p>
-          </article>
-          <article class="card">
-            <div class="chip-row">
-              <span class="chip">System outcome</span>
-            </div>
-            <h3>Stronger together</h3>
-            <p>One agent plans optimistically, one agent reviews defensively, and the human remains the gate before execution.</p>
-          </article>
-        </div>
+      <div class="section-header">
+        <div class="section-kicker">overview</div>
+        <h2 class="section-title">What each side is doing</h2>
+        <p class="section-copy">The page is optimized for engineers skimming architecture, not stakeholders browsing a pitch deck.</p>
+      </div>
+      <div class="card-grid">
+        <article class="card">
+          <span class="card-label">claude</span>
+          <h3>planning and orchestration</h3>
+          <p>Best used for decomposition, file mapping, sequencing, and coordinating multiple agents or tasks.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">codex</span>
+          <h3>review and execution support</h3>
+          <p>Useful for defensive critique, bounded execution, and parallel work when tasks are isolated enough.</p>
+        </article>
+        <article class="card">
+          <span class="card-label">human</span>
+          <h3>approval and correction</h3>
+          <p>The process is stronger when the user approves the plan and resolves conflicts before code starts moving.</p>
+        </article>
       </div>
     </section>
 
     <section class="section" id="workflow">
-      <div class="shell">
-        <div class="section-header">
-          <div>
-            <span class="kicker">Workflow</span>
-            <h2>Seven phases, reduced to the steps that matter.</h2>
-            <p>These cards condense the TUI content into a sequence that reads well on the web while preserving the original mechanics and commands.</p>
-          </div>
-        </div>
-        <div class="timeline" id="timeline"></div>
+      <div class="section-header">
+        <div class="section-kicker">workflow</div>
+        <h2 class="section-title">Seven phases</h2>
+        <p class="section-copy">This is the minimal sequence. Each step includes the command surface and the role that owns it.</p>
       </div>
+      <div class="workflow" id="timeline"></div>
     </section>
 
-    <section class="section" id="console">
-      <div class="shell">
-        <div class="section-header">
-          <div>
-            <span class="kicker">Console View</span>
-            <h2>Keep the technical depth, but reveal it on demand.</h2>
-            <p>The page keeps the operator-focused information from the TUI and exposes it through a cleaner tabbed panel.</p>
+    <section class="section" id="reference">
+      <div class="section-header">
+        <div class="section-kicker">reference</div>
+        <h2 class="section-title">Hooks, commands, and why the loop works</h2>
+        <p class="section-copy">The details are still here, but they are grouped like reference material instead of feature marketing.</p>
+      </div>
+      <div class="tab-shell">
+        <div class="tab-buttons" role="tablist" aria-label="Reference tabs">
+          <button class="tab-button active" data-tab="hooks" role="tab" aria-selected="true" type="button">hooks</button>
+          <button class="tab-button" data-tab="commands" role="tab" aria-selected="false" type="button">commands</button>
+          <button class="tab-button" data-tab="benefits" role="tab" aria-selected="false" type="button">why it works</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-hooks" role="tabpanel">
+          <div class="split">
+            <article class="list-item">
+              <strong>PostToolUse</strong>
+              <p>After Claude writes a plan, trigger the Codex review bridge.</p>
+              <p><code>bash .claude/hooks/codex-review.sh</code></p>
+            </article>
+            <article class="list-item">
+              <strong>Stop</strong>
+              <p>Execution stays blocked until <code>plan.approved.md</code> exists.</p>
+            </article>
+            <article class="list-item">
+              <strong>SubagentStop</strong>
+              <p>Workers emit structured status for later aggregation and progress output.</p>
+            </article>
+            <article class="list-item">
+              <strong>SessionStart</strong>
+              <p>Inject project context at session start so the workflow is repeatable.</p>
+            </article>
           </div>
         </div>
-        <div class="tab-shell">
-          <div class="tab-buttons" role="tablist" aria-label="Console tabs">
-            <button class="tab-button active" data-tab="hooks" role="tab" aria-selected="true" type="button">Hooks</button>
-            <button class="tab-button" data-tab="benefits" role="tab" aria-selected="false" type="button">Benefits</button>
-            <button class="tab-button" data-tab="commands" role="tab" aria-selected="false" type="button">Commands</button>
-          </div>
 
-          <div class="tab-panel active" id="tab-hooks" role="tabpanel">
-            <div class="grid grid-2">
-              <article class="list-item">
-                <strong>PostToolUse</strong>
-                <p>After Claude writes the plan, trigger the bridge script to run a Codex review pass.</p>
-                <code>bash .claude/hooks/codex-review.sh</code>
-              </article>
-              <article class="list-item">
-                <strong>Stop gate</strong>
-                <p>Check for <code>plan.approved.md</code>. If it does not exist, the workflow stays blocked until a human approves the plan.</p>
-              </article>
-              <article class="list-item">
-                <strong>SubagentStop</strong>
-                <p>Capture structured output from worker agents so a later <code>/progress-report</code> can aggregate status without polling.</p>
-              </article>
-              <article class="list-item">
-                <strong>SessionStart</strong>
-                <p>Inject project context at the start of every run and keep the workflow repeatable across sessions.</p>
-              </article>
-            </div>
+        <div class="tab-panel" id="tab-commands" role="tabpanel">
+          <div class="split">
+            <article class="list-item">
+              <strong>/plan &lt;task&gt;</strong>
+              <p>Produce the first plan draft.</p>
+            </article>
+            <article class="list-item">
+              <strong>/approve</strong>
+              <p>Unlock the gate and authorize execution.</p>
+            </article>
+            <article class="list-item">
+              <strong>/go</strong>
+              <p>Launch worker execution from the approved plan.</p>
+            </article>
+            <article class="list-item">
+              <strong>/progress-report</strong>
+              <p>Summarize worker status without polling.</p>
+            </article>
           </div>
+        </div>
 
-          <div class="tab-panel" id="tab-benefits" role="tabpanel">
-            <div class="list">
-              <article class="list-item">
-                <strong>Deterministic control beats prompt-only policy.</strong>
-                <p>Hooks always fire; they are better for guardrails, approvals, and audit requirements than loose instruction text.</p>
-              </article>
-              <article class="list-item">
-                <strong>Parallelism without losing structure.</strong>
-                <p>Claude can keep the high-context orchestration while Codex handles independent review or execution branches.</p>
-              </article>
-              <article class="list-item">
-                <strong>Human approval remains first-class.</strong>
-                <p>The workflow is autonomous where it helps, but still explicit where risk, cost, or architecture changes need a decision.</p>
-              </article>
-            </div>
-          </div>
-
-          <div class="tab-panel" id="tab-commands" role="tabpanel">
-            <div class="grid grid-2">
-              <article class="list-item">
-                <strong>Start planning</strong>
-                <p><code>/plan &lt;task&gt;</code> decomposes the problem and writes the first plan draft.</p>
-              </article>
-              <article class="list-item">
-                <strong>Approve or reject</strong>
-                <p><code>/approve</code> unlocks execution. <code>/reject &lt;reason&gt;</code> feeds the issue back into the refinement loop.</p>
-              </article>
-              <article class="list-item">
-                <strong>Launch execution</strong>
-                <p><code>/go</code> reads the approved plan and spawns scoped workers for each task cluster.</p>
-              </article>
-              <article class="list-item">
-                <strong>Report status</strong>
-                <p><code>/progress-report</code> aggregates agent results into a concise operational snapshot.</p>
-              </article>
-            </div>
+        <div class="tab-panel" id="tab-benefits" role="tabpanel">
+          <div class="list">
+            <article class="list-item">
+              <strong>Planning and review are separated.</strong>
+              <p>Claude can optimize for structure while Codex optimizes for scrutiny. That separation is the point.</p>
+            </article>
+            <article class="list-item">
+              <strong>Hooks are stronger than loose prompt rules.</strong>
+              <p>They fire deterministically and are better for gates, audits, and safety checks.</p>
+            </article>
+            <article class="list-item">
+              <strong>Humans stay on the critical decision path.</strong>
+              <p>Approval is explicit. Execution is not allowed to blur past that step.</p>
+            </article>
           </div>
         </div>
       </div>
     </section>
 
     <section class="section" id="risks">
-      <div class="shell">
-        <div class="section-header">
-          <div>
-            <span class="kicker">Risks</span>
-            <h2>The workflow is useful, but it is not magic.</h2>
-            <p>The original TUI's caution content is worth preserving. Public-facing pages should show the controls and the limits, not just the upside.</p>
-          </div>
-        </div>
-        <div class="grid grid-2">
-          <article class="list-item risk danger">
-            <strong>Context loss across agents</strong>
-            <p>Decisions do not carry automatically. Always pass files such as <code>plan.md</code> instead of assuming shared memory.</p>
-          </article>
-          <article class="list-item risk warn">
-            <strong>Token and latency costs</strong>
-            <p>Review loops can become expensive. Add turn limits and exit conditions so critique does not run forever.</p>
-          </article>
-          <article class="list-item risk warn">
-            <strong>External data handling</strong>
-            <p>Code sent to model APIs leaves the machine. Teams should decide where this is acceptable before turning the pipeline on.</p>
-          </article>
-          <article class="list-item risk info">
-            <strong>Scope discipline matters</strong>
-            <p>Worker agents should receive narrow file ownership and minimal privileges so they cannot drift into unrelated changes.</p>
-          </article>
-        </div>
+      <div class="section-header">
+        <div class="section-kicker">risks</div>
+        <h2 class="section-title">Known failure modes</h2>
+        <p class="section-copy">This is a workflow document, so the caveats belong on the page.</p>
+      </div>
+      <div class="split">
+        <article class="list-item risk-danger">
+          <strong>Context is not shared automatically</strong>
+          <p>Pass files such as <code>plan.md</code>. Do not assume agent memory survives across boundaries.</p>
+        </article>
+        <article class="list-item risk-warn">
+          <strong>Review loops can get expensive</strong>
+          <p>Set exit conditions and turn limits so critique does not become churn.</p>
+        </article>
+        <article class="list-item risk-warn">
+          <strong>Code leaves the machine</strong>
+          <p>Both tools may send code to external APIs. Treat that as a real boundary.</p>
+        </article>
+        <article class="list-item risk-info">
+          <strong>Worker scope must stay narrow</strong>
+          <p>Bound agents to specific file areas and avoid over-broad execution prompts.</p>
+        </article>
       </div>
     </section>
 
-    <section class="section" id="launch">
-      <div class="shell">
-        <div class="section-header">
-          <div>
-            <span class="kicker">Launch</span>
-            <h2>Publish it, install it, and keep the source material nearby.</h2>
-            <p>The new page is the default entry point. The original TUI remains available as a raw deep-dive for people who want the full terminal-style view.</p>
-          </div>
-        </div>
-        <div class="grid grid-2">
-          <article class="card">
-            <h3>What this repository now supports</h3>
-            <div class="list">
-              <div class="list-item">
-                <strong>Sharable default URL</strong>
-                <p>GitHub Pages can serve <code>index.html</code> directly at the repository site URL.</p>
-              </div>
-              <div class="list-item">
-                <strong>PWA install prompt</strong>
-                <p>The app registers a manifest and service worker so supported browsers can install it to desktop or mobile home screens.</p>
-              </div>
-              <div class="list-item">
-                <strong>Offline shell</strong>
-                <p>Key static files are cached so the page still opens even if the network drops after the first visit.</p>
-              </div>
-            </div>
-          </article>
-          <article class="card">
-            <h3>Repository entry points</h3>
-            <div class="action-row">
-              <a class="button button-secondary" href="./pages/claude-codex-workflow-tui.html">Open original TUI</a>
-              <a class="button button-secondary" href="./slides/claude-codex-workflow-deck.html">Open slide deck</a>
-            </div>
-            <p class="small">
-              The Markdown technical notes remain in <code>docs/claude-codex-technical-architecture.md</code>.
-              If you want that rendered as a public HTML page too, it should become a separate static page later.
-            </p>
-          </article>
-        </div>
+    <section class="section" id="assets">
+      <div class="section-header">
+        <div class="section-kicker">assets</div>
+        <h2 class="section-title">Repository entry points</h2>
+        <p class="section-copy">The public page links to the deeper artifacts instead of trying to duplicate them all inline.</p>
+      </div>
+      <div class="split">
+        <article class="list-item">
+          <strong>raw pages</strong>
+          <p><a href="./pages/claude-codex-workflow-tui.html">Open original TUI</a></p>
+          <p><a href="./slides/claude-codex-workflow-deck.html">Open slide deck</a></p>
+        </article>
+        <article class="list-item">
+          <strong>docs and pwa</strong>
+          <p><code>docs/claude-codex-technical-architecture.md</code></p>
+          <p><code>manifest.webmanifest</code> and <code>service-worker.js</code> keep the page installable.</p>
+        </article>
       </div>
     </section>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div class="footer-meta">minimal github pages shell for the Claude x Codex workflow</div>
+        <div class="actions" style="margin-top:0">
+          <button class="button" id="footer-share" type="button">Copy link</button>
+          <a class="button" href="#overview">Top</a>
+        </div>
+      </div>
+    </footer>
   </main>
-
-  <footer class="footer">
-    <div class="shell">
-      <div class="panel footer-card">
-        <div>
-          <strong>Claude x Codex</strong>
-          <div class="small">Responsive GitHub Pages app shell generated from the original TUI concept.</div>
-        </div>
-        <div class="action-row" style="margin-top:0">
-          <button class="button button-secondary" id="footer-share" type="button">Copy sharable link</button>
-          <a class="button button-ghost" href="#overview">Back to top</a>
-        </div>
-      </div>
-    </div>
-  </footer>
 
   <script>
     const workflowSteps = [
@@ -1008,69 +784,69 @@
         title: "Planning mode produces the first structured draft.",
         body: "Claude reads the task and maps the implementation into objectives, file changes, dependencies, and task clusters before code is touched.",
         command: '/plan "implement OAuth2 with refresh tokens"',
-        meta: ["Planner", "Read-heavy", "High context"]
+        meta: ["planner", "read-heavy", "high context"]
       },
       {
         phase: "02",
         label: "Codex",
         title: "Review mode stress-tests the plan before execution.",
-        body: "Codex critiques the draft for missing edge cases, operational risks, and security concerns. The point is not agreement; it is tension that improves the plan.",
+        body: "Codex critiques the draft for missing edge cases, operational risks, and security concerns.",
         command: "codex --review --input plan.md --output review.md",
-        meta: ["Reviewer", "Repo-scale", "Defensive"]
+        meta: ["reviewer", "repo-scale", "defensive"]
       },
       {
         phase: "03",
         label: "Bridge",
         title: "A hook-driven dialogue loop refines the plan.",
-        body: "Hook events pass the review back to Claude, which updates the plan and can repeat the cycle until the output is strong enough for human review.",
+        body: "Hook events pass the review back to Claude, which updates the plan until it is ready for human review.",
         command: "PostToolUse -> codex-review.sh -> SubagentStop",
-        meta: ["Hooks", "Refinement", "Structured feedback"]
+        meta: ["hooks", "refinement", "feedback"]
       },
       {
         phase: "04",
         label: "Human",
         title: "The gate keeps humans in charge of execution.",
-        body: "Nothing launches until a stakeholder or developer approves the refined plan. That approval becomes the explicit handoff into execution.",
+        body: "Nothing launches until a stakeholder or developer approves the refined plan.",
         command: "/approve",
-        meta: ["Gate", "Decision point", "Accountability"]
+        meta: ["gate", "decision", "accountability"]
       },
       {
         phase: "05",
         label: "Launch",
         title: "Execution starts only after approval.",
-        body: "Claude reads the approved plan, groups work into clusters, and assigns ownership to sub-agents with isolated context and bounded scope.",
+        body: "Claude reads the approved plan, groups work into clusters, and assigns ownership to sub-agents with bounded scope.",
         command: "/go",
-        meta: ["Scoped workers", "Parallel ready", "Plan-led"]
+        meta: ["scoped workers", "parallel ready", "plan-led"]
       },
       {
         phase: "06",
         label: "Workers",
         title: "Optional delegation adds true parallel throughput.",
-        body: "Independent tasks can be sent to Codex or separate sub-agents while the orchestrator remains focused on integration and status tracking.",
+        body: "Independent tasks can be sent to Codex or separate sub-agents while the orchestrator stays focused on integration.",
         command: "/delegate &lt;task-id&gt;",
-        meta: ["Parallelism", "Isolation", "Operator controlled"]
+        meta: ["parallelism", "isolation", "controlled"]
       },
       {
         phase: "07",
         label: "Status",
-        title: "Progress reporting stays event-driven instead of noisy.",
-        body: "Sub-agents write structured state on stop events so the system can summarize progress instantly without polling loops or hand-built dashboards.",
+        title: "Progress reporting stays event-driven.",
+        body: "Sub-agents write structured state on stop events so the system can summarize progress without polling loops.",
         command: "/progress-report",
-        meta: ["Event-driven", "Aggregation", "Low overhead"]
+        meta: ["event-driven", "aggregation", "low overhead"]
       }
     ];
 
     const timeline = document.getElementById("timeline");
     timeline.innerHTML = workflowSteps.map((step) => `
-      <article class="timeline-card">
-        <div class="timeline-index">
-          <strong>${step.phase}</strong>
-          <span>${step.label}</span>
+      <article class="workflow-card">
+        <div class="workflow-index">
+          <div class="workflow-phase">${step.phase}</div>
+          <div class="workflow-owner">${step.label}</div>
         </div>
-        <div class="timeline-copy">
+        <div>
           <h3>${step.title}</h3>
           <p>${step.body}</p>
-          <code>${step.command}</code>
+          <div class="workflow-command"><code>${step.command}</code></div>
           <div class="meta">
             ${step.meta.map((item) => `<span>${item}</span>`).join("")}
           </div>
